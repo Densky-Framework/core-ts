@@ -1,14 +1,9 @@
 {
   "$schema": "https://deno.land/x/deno/cli/schemas/config-file.v1.json",
-  "compilerOptions": {
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "deno.window",
-      "esnext"
-    ]
-  },
+  
   "tasks": {
-    "dev": "deno run -A ./main.ts"
-  }
+    "dev": "deno run -A --watch ./main.ts"
+  },
+
+  "importMap": "./import_map.json"
 }

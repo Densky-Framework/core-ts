@@ -1,4 +1,4 @@
-import { Promisable } from "../common.d.ts";
+import { Promisable } from "../common.ts";
 import { BaseServer } from "./BaseServer.ts";
 
 export class Server extends BaseServer {

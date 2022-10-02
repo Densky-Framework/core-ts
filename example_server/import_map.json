@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "$dusky-backend/": "../",
+    "$dusky-backend": "../mod.ts"
+  }
+}
