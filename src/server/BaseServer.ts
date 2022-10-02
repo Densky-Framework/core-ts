@@ -70,7 +70,7 @@ export abstract class BaseServer {
     const http = Deno.serveHttp(conn);
     for await (const request of http) {
       try {
-        const handled = this.handleRequest(request);
+        const handled = this.handleRequest(request, conn);
 
         // Handle Async
         if (typeof handled === "object" && "catch" in handled) {
@@ -91,5 +91,5 @@ export abstract class BaseServer {
     }
   }
 
-  abstract handleRequest(_request: Deno.RequestEvent): Promisable<Response>;
+  abstract handleRequest(request: Deno.RequestEvent, conn: Deno.Conn): Promisable<Response>;
 }
