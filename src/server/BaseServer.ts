@@ -1,4 +1,5 @@
-import type { Promisable } from "../common.d.ts";
+import { isAbsolute, join } from "https://deno.land/std@0.158.0/path/posix.ts";
+import type { Promisable } from "../common.ts";
 import { HTTPError } from "../http/HTTPError.ts";
 
 export type BaseServerOptions = Parameters<typeof Deno.listen>[0] & {
@@ -23,16 +24,33 @@ export abstract class BaseServer {
   constructor(options: BaseServerOptions) {
     this.server = Deno.listen(options);
 
+    options.routesPath = new URL(options.routesPath).pathname;
+
     this.options = options = Object.assign<
       Required<BaseServerOptions>,
       BaseServerOptions
     >(defaultOptions, options);
+
 
     if (options.verbose) {
       console.log(
         `[SERVER] Initialized at ${options.hostname}:${options.port}`
       );
     }
+  }
+
+  protected resolveRawRoute(route: string): string {
+    route = route.trim();
+
+    if (isAbsolute(route)) {
+      route = route.slice(1).trim();
+    }
+
+    if (route === "") {
+      route = "index";
+    }
+
+    return join(this.options.routesPath, route);
   }
 
   async start() {
