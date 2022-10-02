@@ -119,4 +119,4 @@ export enum HTTPMethod {
   ANY = "ANY",
 }
 
-export type HTTPMethodStr = keyof HTTPMethod;
+export type HTTPMethodStr = "GET" | "POST" | "DELETE" | "PATH" | "ANY";
