@@ -1,6 +1,11 @@
 - [ ] Make file-system based routes
-  + [ ] Make exact route match
+  + [x] Make exact route match
+  + [ ] Make URL-params match
   + [ ] Make virtual-route folders
   + [ ] Make conventions
+    + [x] \_fallback.ts
 
-- [ ] Make responsive response for routes
+- [x] Make responsive response for routes
+
+- [ ] Make compiler
+  + [ ] Compile routes to individual bundled files
