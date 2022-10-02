@@ -110,3 +110,13 @@ export const statusMessages: Record<StatusCode, string> = {
   504: "Gateway Timeout",
   507: "Insufficient Storage",
 };
+
+export enum HTTPMethod {
+  GET = "GET",
+  POST = "POST",
+  DELETE = "DELETE",
+  PATCH = "PATH",
+  ANY = "ANY",
+}
+
+export type HTTPMethodStr = keyof HTTPMethod;
