@@ -1,5 +1,7 @@
-import { IController } from "dusky";
+import { HTTPRequest, IController } from "dusky";
 
-export class ByeController implements IController {
-  ANY() {}
+export default class ByeController implements IController {
+  GET(_req: HTTPRequest) {
+    return new Response("Bye " + _req.event.request.url);
+  }
 }
