@@ -1,8 +1,20 @@
 import { Promisable } from "../common.ts";
-import { BaseServer } from "./BaseServer.ts";
+import { BaseServer, BaseServerOptions } from "./BaseServer.ts";
+
+type RequestHandler = (
+  request: Deno.RequestEvent,
+  conn: Deno.Conn
+) => Promisable<Response>;
 
 export class Server extends BaseServer {
-  handleRequest(request: Deno.RequestEvent): Promisable<void> {
-    request.respondWith(new Response("Hola", { status: 201 }))
+  constructor(
+    options: BaseServerOptions,
+    readonly requestHandler: RequestHandler
+  ) {
+    super(options);
+  }
+
+  async handleRequest(req: Deno.RequestEvent, conn: Deno.Conn) {
+    return await this.requestHandler(req, conn);
   }
 }

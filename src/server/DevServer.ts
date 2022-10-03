@@ -1,8 +1,8 @@
-import { dirname, join } from "https://deno.land/std@0.158.0/path/posix.ts";
 import { StatusCode } from "../common.ts";
+import { path, pathPosix } from "../deps.ts";
 import { HTTPError, HTTPRequest, HTTPResponse } from "../http/index.ts";
 import { IController } from "../router/Controller.ts";
-import { BaseServer } from "./BaseServer.ts";
+import { BaseServer, BaseServerOptions } from "./BaseServer.ts";
 
 const handleResponse = (
   response: HTTPResponse | Response | HTTPError | Error
@@ -18,6 +18,25 @@ const handleResponse = (
 };
 
 export class DevServer extends BaseServer {
+  constructor(options: BaseServerOptions, readonly routesPath: string) {
+    super(options);
+    routesPath = new URL(routesPath).pathname;
+  }
+
+  protected resolveRawRoute(route: string): string {
+    route = route.trim();
+
+    if (pathPosix.isAbsolute(route)) {
+      route = route.slice(1).trim();
+    }
+
+    if (route === "") {
+      route = "index";
+    }
+
+    return path.join(this.routesPath, route);
+  }
+
   protected async resolveRoute(route: string): Promise<string | null> {
     const rawRoute = this.resolveRawRoute(route);
 
@@ -37,11 +56,13 @@ export class DevServer extends BaseServer {
       // Handle ROUTE.ts
       (await handleFile(rawRoute + ".ts")) ??
       // Handle ROUTE/index.ts
-      (await handleFile(join(rawRoute, "index.ts"))) ??
+      (await handleFile(pathPosix.join(rawRoute, "index.ts"))) ??
       // Handle ROUTE/_fallback.ts
-      (await handleFile(join(rawRoute, "_fallback.ts"))) ??
+      (await handleFile(pathPosix.join(rawRoute, "_fallback.ts"))) ??
       // Handle _fallback.ts
-      (await handleFile(join(dirname(rawRoute), "_fallback.ts")))
+      (await handleFile(
+        pathPosix.join(pathPosix.dirname(rawRoute), "_fallback.ts")
+      ))
     );
   }
 
@@ -77,14 +98,9 @@ export class DevServer extends BaseServer {
     const controller: IController = new controllerMod["default"]();
     const method = request.request.method as keyof IController;
 
-    if (
-      method in controller &&
-      typeof controller[method] === "function"
-    ) {
+    if (method in controller && typeof controller[method] === "function") {
       try {
-        const response = await controller[method]!(
-          new HTTPRequest(request)
-        );
+        const response = await controller[method]!(new HTTPRequest(request));
         return handleResponse(response);
       } catch (e) {
         return HTTPError.fromError(e as Error).toResponse();

@@ -1,10 +1,8 @@
-import { isAbsolute, join } from "https://deno.land/std@0.158.0/path/posix.ts";
 import type { Promisable } from "../common.ts";
 import { HTTPError } from "../http/HTTPError.ts";
 
 export type BaseServerOptions = Parameters<typeof Deno.listen>[0] & {
   verbose?: boolean;
-  routesPath: string;
   watchMode?: boolean;
 };
 
@@ -14,7 +12,6 @@ const defaultOptions: Required<BaseServerOptions> = {
   port: 0,
   verbose: false,
   watchMode: false,
-  routesPath: "",
 };
 
 export abstract class BaseServer {
@@ -24,33 +21,16 @@ export abstract class BaseServer {
   constructor(options: BaseServerOptions) {
     this.server = Deno.listen(options);
 
-    options.routesPath = new URL(options.routesPath).pathname;
-
     this.options = options = Object.assign<
       Required<BaseServerOptions>,
       BaseServerOptions
     >(defaultOptions, options);
-
 
     if (options.verbose) {
       console.log(
         `[SERVER] Initialized at ${options.hostname}:${options.port}`
       );
     }
-  }
-
-  protected resolveRawRoute(route: string): string {
-    route = route.trim();
-
-    if (isAbsolute(route)) {
-      route = route.slice(1).trim();
-    }
-
-    if (route === "") {
-      route = "index";
-    }
-
-    return join(this.options.routesPath, route);
   }
 
   async start() {
@@ -67,8 +47,7 @@ export abstract class BaseServer {
   }
 
   async handleConnection(conn: Deno.Conn): Promise<void> {
-    const http = Deno.serveHttp(conn);
-    for await (const request of http) {
+    for await (const request of Deno.serveHttp(conn)) {
       try {
         const handled = this.handleRequest(request, conn);
 
@@ -91,5 +70,8 @@ export abstract class BaseServer {
     }
   }
 
-  abstract handleRequest(request: Deno.RequestEvent, conn: Deno.Conn): Promisable<Response>;
+  abstract handleRequest(
+    request: Deno.RequestEvent,
+    conn: Deno.Conn
+  ): Promisable<Response>;
 }
