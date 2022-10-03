@@ -1,7 +1,6 @@
 import { Server } from "dusky";
-import { outdirPath } from "./config.ts";
-import requestHandler from "./.dusky/dusky.main.ts"
+import requestHandler from "./.dusky/dusky.main.ts";
 
-const server = new Server({ port: 8000, verbose: true, routesPath: outdirPath }, requestHandler);
+const server = new Server({ port: 8000, verbose: true }, requestHandler);
 
 server.start();

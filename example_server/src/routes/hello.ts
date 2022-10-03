@@ -1,10 +1,16 @@
-import { IController, HTTPError, HTTPRequest, HTTPResponse } from "dusky";
-import { Promisable } from "dusky/common.ts";
+import { IController, HTTPError } from "dusky";
+import { StatusCode } from "dusky/common.ts";
 
 export default class HelloController implements IController {
-  GET(
-    _req: HTTPRequest
-  ): Promisable<HTTPResponse | Response | HTTPError | Error> {
+  GET() {
     return new Response("Hola");
+  }
+
+  POST() {
+    return new HTTPError(StatusCode.TEAPOT);
+  }
+
+  ANY() {
+    return new Response("Hola (ANY)")
   }
 }
