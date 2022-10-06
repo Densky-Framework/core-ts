@@ -18,9 +18,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents:
-    - read
-    - write
+  contents: write
 
 jobs:
   build:
@@ -37,7 +35,9 @@ jobs:
           deno-version: v1.x
 
       - name: Build
-        run: cd example_server && deno task build
+        run: |
+          cd example_server
+          deno task build
           
         
       - name: Commit it
