@@ -38,6 +38,10 @@ jobs:
         run: |
           cd example_server
           deno task build
+          cd ..
+          
+      - name: Remove .gitignore
+        run: rm example_server/.gitignore
           
         
       - name: Commit it
@@ -45,7 +49,7 @@ jobs:
         with:
           # The arguments for the `git add` command (see the paragraph below for more info)
           # Default: '.'
-          add: 'example_server'
+          add: ''
 
           # Determines the way the action fills missing author name and email. Three options are available:
           # - github_actor -> UserName <UserName@users.noreply.github.com>
