@@ -69,4 +69,4 @@ jobs:
           # Default: ignore
           pathspec_error_handling: ignore
 
-          push: "--force"
+          push: "--force example-build"
