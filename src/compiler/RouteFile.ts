@@ -149,7 +149,7 @@ The class must be exported as default and will contains the implement of 'IContr
       }
 
       const end =
-        (reqParam ? `let ${reqParam} = httpRequest;\n` : "") +
+        (reqParam ? `let ${reqParam} = req;\n` : "") +
         remain.slice(0, length - 1).trim();
 
       handlers.push(

@@ -1,21 +1,9 @@
 import { StatusCode } from "../common.ts";
 import { path, pathPosix } from "../deps.ts";
-import { HTTPError, HTTPRequest, HTTPResponse } from "../http/index.ts";
+import { HTTPError, HTTPRequest } from "../http/index.ts";
 import { IController } from "../router/Controller.ts";
 import { BaseServer, BaseServerOptions } from "./BaseServer.ts";
-
-const handleResponse = (
-  response: HTTPResponse | Response | HTTPError | Error
-): Response => {
-  // TODO
-  if (response instanceof HTTPResponse) return new Response("Teapot");
-  if (response instanceof Response) return response;
-  if (response instanceof HTTPError) return response.toResponse();
-  if (response instanceof Error)
-    return HTTPError.fromError(response).toResponse();
-
-  throw new Error("Unreachable code");
-};
+import { toResponse } from "../utils.ts";
 
 export class DevServer extends BaseServer {
   constructor(options: BaseServerOptions, readonly routesPath: string) {
@@ -101,7 +89,7 @@ export class DevServer extends BaseServer {
     if (method in controller && typeof controller[method] === "function") {
       try {
         const response = await controller[method]!(new HTTPRequest(request));
-        return handleResponse(response);
+        return toResponse(response);
       } catch (e) {
         return HTTPError.fromError(e as Error).toResponse();
       }
