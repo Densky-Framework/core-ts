@@ -7,5 +7,9 @@
       "deno.window",
       "esnext"
     ]
+  },
+
+  "tasks": {
+    "test": "deno test src/**/*.spec.ts"
   }
 }
