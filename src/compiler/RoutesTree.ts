@@ -1,7 +1,7 @@
 import { createStreaming } from "https://deno.land/x/dprint@0.2.0/mod.ts";
 import { fs, path, pathPosix } from "../deps.ts";
 import { RouteFile } from "./RouteFile.ts";
-import { RouteImport, RouteImportType } from "./RouteImport.ts";
+import { RouteImport } from "./RouteImport.ts";
 const pathMod = path;
 
 // Setup Formatter
