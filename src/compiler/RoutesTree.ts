@@ -93,6 +93,8 @@ ${childrenImports}`;
       )
       .join(";\n");
 
+    const hasAny = this.routeFile?.handlers?.has("ANY") ?? false;
+
     const bodyContent = this.routeFile
       ? Array.from(this.routeFile.handlers.entries())
           .map(([method, handl]) => {
@@ -103,7 +105,9 @@ ${childrenImports}`;
               : handl.body;
           })
           .join("\n") +
-        "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
+        (!hasAny
+          ? "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
+          : "")
       : "";
 
     const body = this.routeFile
@@ -134,8 +138,6 @@ ${childrenImports}`;
       const str = out.toImportString();
       if (str.length > 0) routeImportsStr.push(str);
     });
-
-    console.log(routeImportsStr);
 
     const handler =
       this.isRoot || this.children.size === 0
