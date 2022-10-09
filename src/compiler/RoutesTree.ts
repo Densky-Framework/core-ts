@@ -1,6 +1,8 @@
 import { createStreaming } from "https://deno.land/x/dprint@0.2.0/mod.ts";
-import { fs, path } from "../deps.ts";
+import { fs, path, pathPosix } from "../deps.ts";
+import { UrlMatcher, urlToMatcher } from "../utils.ts";
 import { RouteFile } from "./RouteFile.ts";
+import { RouteImport } from "./RouteImport.ts";
 const pathMod = path;
 
 // Setup Formatter
@@ -15,6 +17,9 @@ tsFormatter.setConfig(
 export class RoutesTree {
   children = new Set<RoutesTree>();
   readonly dirname: string;
+  readonly relativePath: string;
+
+  readonly matcher: UrlMatcher;
 
   constructor(
     readonly path: string,
@@ -23,6 +28,17 @@ export class RoutesTree {
     readonly isRoot: boolean = false
   ) {
     this.dirname = pathMod.dirname(filePath);
+    this.relativePath = pathMod.relative(Deno.cwd(), filePath);
+
+    path = path.trim();
+
+    // Normalize to have slash at the beginning
+    if (!pathPosix.isAbsolute(path)) {
+      path = "/" + path;
+    }
+
+    this.path = path;
+    this.matcher = urlToMatcher(this.path);
   }
 
   addChild(route: RoutesTree) {
@@ -31,25 +47,8 @@ export class RoutesTree {
     return this;
   }
 
-  generateMatcher(): string {
-    return this.isRoot
-      ? "true"
-      : this.routeFile
-      ? `req.pathname === "/${this.path}"`
-      : `req.pathname.startsWith("${this.path}")`;
-  }
-
   generateImports(): string {
     if (this.routeFile) this.routeFile.outPath = this.filePath;
-
-    const routeImports = this.routeFile
-      ? Array.from(this.routeFile.imports)
-          .map(
-            ([im, pth]) =>
-              `import ${im} from "${this.routeFile?.resolveImport(pth)}"`
-          )
-          .join(";\n")
-      : "";
 
     const childrenImports = Array.from(this.children)
       .map((child, i) => {
@@ -61,38 +60,98 @@ export class RoutesTree {
       .join(";\n");
 
     return `import * as $Dusky$ from "dusky";
-${routeImports}
 ${childrenImports}`;
   }
 
-  buildFile(): string {
-    const handler =
-      Array.from(this.children)
-        .map(
-          (_, i) =>
-            `{ const out$${i} = await $child$${i}(req); if (out$${i}) return out$${i} }`
-        )
-        .join(";\n") +
-      ";" +
-      (this.routeFile
-        ? Array.from(this.routeFile.handlers.entries())
-            .map(([method, handl]) => {
-              return method !== "ANY"
-                ? `if (req.method === "${method}") {
+  getRouteIdentImports(): Map<string, RouteImport> {
+    if (!this.routeFile) return new Map();
+
+    const map = new Map<string, RouteImport>();
+
+    this.routeFile.imports.forEach(([im, path]) => {
+      const def = RouteImport.getDefOf(im);
+
+      const routeImport = map.get(path) ?? new RouteImport(path);
+
+      // Add if has
+      def.multiImports && routeImport.addMultiImports(def.multiImports);
+      def.defaultImport && routeImport.addDefaultImport(def.defaultImport);
+      def.starImport && routeImport.addStarImport(def.starImport);
+
+      map.set(path, routeImport);
+    });
+
+    return map;
+  }
+
+  generateHandler() {
+    const childCalls = Array.from(this.children)
+      .map(
+        (_, i) =>
+          `const out$${i} = await $child$${i}(req); if (out$${i}) return out$${i}`
+      )
+      .join(";\n");
+
+    const hasAny = this.routeFile?.handlers?.has("ANY") ?? false;
+
+    const bodyContent = this.routeFile
+      ? Array.from(this.routeFile.handlers.entries())
+          .map(([method, handl]) => {
+            return method !== "ANY"
+              ? `if (req.method === "${method}") {
         ${handl.body}
       }`
-                : handl.body;
-            })
-            .join("\n") +
-          "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
-        : "");
-    const content = `
-// ${path.relative(Deno.cwd(), this.filePath)}
+              : handl.body;
+          })
+          .join("\n") +
+        (!hasAny
+          ? "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
+          : "")
+      : "";
+
+    const body = this.routeFile
+      ? `if (${this.matcher.exactDecl("pathname")}) { ${bodyContent} }`
+      : "";
+
+    return childCalls + ";\n\n" + body;
+  }
+
+  buildFile(): string {
+    const imports = this.generateImports();
+    const routeImports = this.getRouteIdentImports();
+    const body = this.generateHandler();
+
+    const routeImportsStr: string[] = [];
+
+    routeImports.forEach((routeImport) => {
+      const out = new RouteImport(routeImport.path);
+
+      // For every ident, if can find it inside of body, then put it
+      // else, just ignore it
+      routeImport.getAllIdents().forEach((ty, ident) => {
+        if (body.match(RouteImport.getMatcherOf(ident)) !== null) {
+          out.addImport(ident, ty);
+        }
+      });
+
+      const str = out.toImportString();
+      if (str.length > 0) routeImportsStr.push(str);
+    });
+
+    const handler =
+      this.isRoot || this.children.size === 0
+        ? body
+        : `if (${this.matcher.startDecl("pathname")}) {${body}}`;
+
+    const content = `// deno-lint-ignore-file
+// ${this.relativePath}
 // THIS FILE WAS GENERATED BY DUSKY-BACKEND (by Apika Luca)
-${this.generateImports()}
+${imports}
+${routeImportsStr.join(";\n")}
 
 async function handler(req: $Dusky$.HTTPRequest): Promise<Response | $Dusky$.HTTPResponse | $Dusky$.HTTPError | void> {
-  ${this.isRoot ? handler : `if (${this.generateMatcher()}) {${handler}}`}
+  ${this.matcher.prepareDecl("pathname", "req.pathname")}
+  ${handler}
 }
 
 export default handler;
