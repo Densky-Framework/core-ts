@@ -1,4 +1,4 @@
-import { IController, HTTPError } from "dusky";
+import dusky, { IController, HTTPError } from "dusky";
 import { StatusCode } from "dusky/common.ts";
 
 export default class HelloController implements IController {
