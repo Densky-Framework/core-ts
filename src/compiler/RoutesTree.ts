@@ -1,5 +1,6 @@
 import { createStreaming } from "https://deno.land/x/dprint@0.2.0/mod.ts";
 import { fs, path, pathPosix } from "../deps.ts";
+import { UrlMatcher, urlToMatcher } from "../utils.ts";
 import { RouteFile } from "./RouteFile.ts";
 import { RouteImport } from "./RouteImport.ts";
 const pathMod = path;
@@ -18,8 +19,7 @@ export class RoutesTree {
   readonly dirname: string;
   readonly relativePath: string;
 
-  readonly exactMatcher: string;
-  readonly startsMatcher: string;
+  readonly matcher: UrlMatcher;
 
   constructor(
     readonly path: string,
@@ -38,8 +38,7 @@ export class RoutesTree {
     }
 
     this.path = path;
-    this.exactMatcher = `req.pathname === "${this.path}"`;
-    this.startsMatcher = `req.pathname.startsWith("${this.path}")`;
+    this.matcher = urlToMatcher(this.path);
   }
 
   addChild(route: RoutesTree) {
@@ -111,7 +110,7 @@ ${childrenImports}`;
       : "";
 
     const body = this.routeFile
-      ? `if (${this.exactMatcher}) { ${bodyContent} }`
+      ? `if (${this.matcher.exactDecl("pathname")}) { ${bodyContent} }`
       : "";
 
     return childCalls + ";\n\n" + body;
@@ -142,7 +141,7 @@ ${childrenImports}`;
     const handler =
       this.isRoot || this.children.size === 0
         ? body
-        : `if (${this.startsMatcher}) {${body}}`;
+        : `if (${this.matcher.startDecl("pathname")}) {${body}}`;
 
     const content = `
 // ${this.relativePath}
@@ -151,6 +150,7 @@ ${imports}
 ${routeImportsStr.join(";\n")}
 
 async function handler(req: $Dusky$.HTTPRequest): Promise<Response | $Dusky$.HTTPResponse | $Dusky$.HTTPError | void> {
+  ${this.matcher.prepareDecl("pathname", "req.pathname")}
   ${handler}
 }
 
