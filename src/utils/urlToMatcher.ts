@@ -60,7 +60,7 @@ export function urlToMatcher(url: string): UrlMatcher {
             if (p[i].raw === tp) return true;
             return false;
           });
-        }()`;
+        })()`;
       },
       start(target) {
         const targetParts = target.split("/");
@@ -97,7 +97,7 @@ export function urlToMatcher(url: string): UrlMatcher {
             if (tp.raw === t[i]) return true;
             return false;
           });
-        }()`;
+        })()`;
       },
       prepareDecl(target, val) {
         return `const urlMatcherPrepare_${target}=((target)=>{
@@ -106,7 +106,7 @@ export function urlToMatcher(url: string): UrlMatcher {
           l: {
             const la = t.pop();
             if (la === undefined || la.length === 0) break l;
-            t.push(last);
+            t.push(la);
           }
           return t;
         })(${val})`;
@@ -119,16 +119,16 @@ export function urlToMatcher(url: string): UrlMatcher {
       return target === url;
     },
     exactDecl(target) {
-      return target + " === '" + url + "'";
+      return "urlMatcherPrepare_" + target + " === '" + url + "'";
     },
     start(target) {
       return target.startsWith(url);
     },
     startDecl(target) {
-      return target + ".startsWith('" + url + "')";
+      return "urlMatcherPrepare_" + target + ".startsWith('" + url + "')";
     },
-    prepareDecl(_target, _val) {
-      return "";
+    prepareDecl(target, val) {
+      return `const urlMatcherPrepare_${target} = ${val};`;
     },
   };
 }

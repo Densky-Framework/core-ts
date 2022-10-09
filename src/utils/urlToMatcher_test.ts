@@ -50,7 +50,7 @@ bdd.describe("urlToMatcher", () => {
             if (p[i].raw === tp) return true;
             return false;
           });
-        }()`);
+        })()`);
     expect(matcher.startDecl("target")).to.be.equal(`(() => {
           const t = urlMatcherPrepare_target;
           const p = ${partsSerialized};
@@ -62,7 +62,7 @@ bdd.describe("urlToMatcher", () => {
             if (tp.raw === t[i]) return true;
             return false;
           });
-        }()`);
+        })()`);
     expect(matcher.prepareDecl("target", "val")).to.be
       .equal(`const urlMatcherPrepare_target=((target)=>{
           const t = target.split("/");
