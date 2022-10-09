@@ -188,6 +188,9 @@ async function request_permisions(
       case "denied":
         log_error(txt);
         return false;
+
+      default:
+        return false;
     }
   };
 
