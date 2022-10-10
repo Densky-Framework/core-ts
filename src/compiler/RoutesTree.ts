@@ -16,6 +16,7 @@ tsFormatter.setConfig(
 
 export class RoutesTree {
   children = new Set<RoutesTree>();
+  fallback: RoutesTree | null = null;
   readonly dirname: string;
   readonly relativePath: string;
 
@@ -42,7 +43,11 @@ export class RoutesTree {
   }
 
   addChild(route: RoutesTree) {
-    this.children.add(route);
+    if (route.path.endsWith("_fallback")) {
+      this.fallback = route;
+    } else {
+      this.children.add(route);
+    }
 
     return this;
   }
@@ -84,17 +89,10 @@ ${childrenImports}`;
     return map;
   }
 
-  generateHandler() {
-    const childCalls = Array.from(this.children)
-      .map(
-        (_, i) =>
-          `const out$${i} = await $child$${i}(req); if (out$${i}) return out$${i}`
-      )
-      .join(";\n");
-
+  generateBodyContent() {
     const hasAny = this.routeFile?.handlers?.has("ANY") ?? false;
 
-    const bodyContent = this.routeFile
+    return this.routeFile
       ? Array.from(this.routeFile.handlers.entries())
           .map(([method, handl]) => {
             return method !== "ANY"
@@ -104,10 +102,21 @@ ${childrenImports}`;
               : handl.body;
           })
           .join("\n") +
-        (!hasAny
-          ? "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
-          : "")
+          (!hasAny
+            ? "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
+            : "")
       : "";
+  }
+
+  generateHandler() {
+    const childCalls = Array.from(this.children)
+      .map(
+        (_, i) =>
+          `const out$${i} = await $child$${i}(req); if (out$${i}) return out$${i}`
+      )
+      .join(";\n");
+
+    const bodyContent = this.generateBodyContent();
 
     const body = this.routeFile
       ? `if (${this.matcher.exactDecl("pathname")}) { ${bodyContent} }`
@@ -119,27 +128,30 @@ ${childrenImports}`;
   buildFile(): string {
     const imports = this.generateImports();
     const routeImports = this.getRouteIdentImports();
-    const body = this.generateHandler();
+    let body = this.generateHandler();
 
     const routeImportsStr: string[] = [];
 
     routeImports.forEach((routeImport) => {
-      const out = new RouteImport(routeImport.path);
+      routeImport.filterUnused(body);
 
-      // For every ident, if can find it inside of body, then put it
-      // else, just ignore it
-      routeImport.getAllIdents().forEach((ty, ident) => {
-        if (body.match(RouteImport.getMatcherOf(ident)) !== null) {
-          out.addImport(ident, ty);
-        }
-      });
-
-      const str = out.toImportString();
+      const str = routeImport.toImportString();
       if (str.length > 0) routeImportsStr.push(str);
     });
 
+    if (this.fallback) {
+      body += this.fallback.generateBodyContent();
+
+      this.fallback.getRouteIdentImports().forEach((routeImport) => {
+        routeImport.filterUnused(body);
+
+        const str = routeImport.toImportString();
+        if (str.length > 0) routeImportsStr.push(str);
+      });
+    }
+
     const handler =
-      this.isRoot || this.children.size === 0
+      this.isRoot || (this.children.size === 0 && this.fallback === null)
         ? body
         : `if (${this.matcher.startDecl("pathname")}) {${body}}`;
 

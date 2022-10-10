@@ -117,6 +117,7 @@ export async function compile(options: CompileOptions) {
   }
 
   console.log(fileTrees);
+  console.log(fileRoutesTree)
 
   log_info("Writing files");
 

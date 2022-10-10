@@ -17,6 +17,12 @@ export class RouteImport {
 
   constructor(readonly path: string) {}
 
+  clear() {
+    this.starImports.clear();
+    this.defaultImports.clear();
+    this.multiImports.clear();
+  }
+
   addStarImport(ident: string) {
     this.starImports.add(ident);
   }
@@ -93,8 +99,23 @@ export class RouteImport {
     return importStrings.join(";\n");
   }
 
+  filterUnused(body: string): this {
+    const allIdents = this.getAllIdents();
+    this.clear();
+
+    // For every ident, if can find it inside of body, then put it
+    // else, just ignore it
+    allIdents.forEach((ty, ident) => {
+      if (body.match(RouteImport.getMatcherOf(ident)) !== null) {
+        this.addImport(ident, ty);
+      }
+    });
+
+    return this;
+  }
+
   static getMatcherOf(ident: string): RegExp {
-    return new RegExp("(?:\W)?" + ident + "(?:\W)?", "g")
+    return new RegExp("(?:W)?" + ident + "(?:W)?", "g");
   }
 
   static getDefOf(im: string): RouteImportDef {
