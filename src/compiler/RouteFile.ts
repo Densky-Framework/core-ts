@@ -26,7 +26,7 @@ export class RouteFile {
   resolveImport(path: string) {
     if (path.startsWith(".")) {
       const absPath = pathMod.join(pathMod.dirname(this.path), path);
-      return pathMod.relative(this.outPath, absPath);
+      return pathMod.relative(pathMod.dirname(this.outPath), absPath);
     } else return path;
   }
 
