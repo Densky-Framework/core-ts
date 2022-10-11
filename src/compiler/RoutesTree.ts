@@ -15,6 +15,7 @@ tsFormatter.setConfig(
 );
 
 export class RoutesTree {
+  parent: RoutesTree | null = null;
   children = new Set<RoutesTree>();
   fallback: RoutesTree | null = null;
   readonly dirname: string;
@@ -43,6 +44,7 @@ export class RoutesTree {
   }
 
   addChild(route: RoutesTree) {
+    route.parent = this;
     if (route.path.endsWith("_fallback")) {
       this.fallback = route;
     } else {

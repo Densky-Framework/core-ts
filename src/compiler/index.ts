@@ -116,8 +116,45 @@ export async function compile(options: CompileOptions) {
     putFileRecursive("/" + path, currentRouteTree);
   }
 
-  console.log(fileTrees);
-  console.log(fileRoutesTree)
+  // Show route graph
+
+  const showRouteGraph = (route: RoutesTree, prefix = "") => {
+    let out = prefix;
+
+    out += route.routeFile ? "▲ " : "△ ";
+    out +=
+      // Remove parent path prefix, except at index(/)
+      !route.parent || route.parent.path === "/"
+        ? route.path
+        : route.path.replace(route.parent.path, "");
+    out +=
+      route.routeFile && route.routeFile.handlers.size > 0
+        ? chalk.dim(
+            " (" + Array.from(route.routeFile.handlers.keys()).join(", ") + ")"
+          )
+        : "";
+
+    console.log(out);
+
+    for (const child of route.children) {
+      showRouteGraph(child, prefix + "  ");
+    }
+
+    if (route.fallback) {
+      console.log(
+        prefix + "  ▲",
+        chalk.dim(
+          "fallback" +
+            " (" +
+            Array.from(route.fallback.routeFile!.handlers.keys()).join(", ") +
+            ")"
+        )
+      );
+    }
+  };
+
+  console.log("Route structure:");
+  showRouteGraph(fileRoutesTree);
 
   log_info("Writing files");
 
