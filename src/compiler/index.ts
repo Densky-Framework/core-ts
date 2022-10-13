@@ -121,7 +121,14 @@ export async function compile(options: CompileOptions) {
   const showRouteGraph = (route: RoutesTree, prefix = "") => {
     let out = prefix;
 
-    out += route.routeFile ? "▲ " : "△ ";
+    out +=
+      route.path === "/"
+        ? route.routeFile
+          ? "★ "
+          : "☆ "
+        : route.routeFile
+        ? "▲ "
+        : "△ ";
     out +=
       // Remove parent path prefix, except at index(/)
       !route.parent || route.parent.path === "/"
@@ -136,16 +143,28 @@ export async function compile(options: CompileOptions) {
 
     console.log(out);
 
+    if (route.middleware) {
+      console.log(
+        prefix + "  ■",
+        chalk.gray("middleware"),
+        chalk.dim(
+          "(" +
+            Array.from(route.middleware.routeFile!.handlers.keys()).join(", ") +
+            ")"
+        )
+      );
+    }
+
     for (const child of route.children) {
       showRouteGraph(child, prefix + "  ");
     }
 
     if (route.fallback) {
       console.log(
-        prefix + "  ▲",
+        prefix + "  ■",
+        chalk.gray("...fallback"),
         chalk.dim(
-          "fallback" +
-            " (" +
+          "(" +
             Array.from(route.fallback.routeFile!.handlers.keys()).join(", ") +
             ")"
         )
@@ -155,6 +174,14 @@ export async function compile(options: CompileOptions) {
 
   console.log("Route structure:");
   showRouteGraph(fileRoutesTree);
+  console.log("");
+
+  // Legend
+  console.log(chalk.gray`★ Root Endpoint (Leaf)`);
+  console.log(chalk.gray`☆ Root Invisible (Branch)`);
+  console.log(chalk.gray`▲ Endpoint (Leaf)`);
+  console.log(chalk.gray`△ Invisible (Branch)`);
+  console.log(chalk.gray`■ Convention`);
 
   log_info("Writing files");
 

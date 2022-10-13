@@ -55,8 +55,6 @@ export class RoutesTree {
   }
 
   set parent(parent) {
-    if (this.#parent === parent) return;
-
     this.#parent = parent;
 
     this.calculateMiddlewares();
@@ -145,20 +143,33 @@ ${middlewareImports}`;
     return map;
   }
 
+  generateMiddlewares() {
+    return !this.isMiddleware
+      ? this.middlewares
+          .map(
+            (_, i) =>
+              `const $mid$${i} = await $middle$${i}(req); if ($mid$${i}) return $mid$${i};`
+          )
+          .join("\n")
+      : "";
+  }
+
   generateBodyContent() {
     const hasAny = this.routeFile?.handlers?.has("ANY") ?? false;
+    const middlewares = this.generateMiddlewares();
 
     return this.routeFile
       ? Array.from(this.routeFile.handlers.entries())
           .map(([method, handl]) => {
             return method !== "ANY"
               ? `if (req.method === "${method}") {
-        ${handl.body}
-      }`
-              : handl.body;
+    ${middlewares}
+    ${handl.body}
+  }`
+              : middlewares + handl.body;
           })
           .join("\n") +
-          (!hasAny
+          (!hasAny && !this.isMiddleware
             ? "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
             : "")
       : "";
@@ -174,7 +185,9 @@ ${middlewareImports}`;
 
     const bodyContent = this.generateBodyContent();
 
-    const body = this.routeFile
+    const body = this.isMiddleware
+      ? bodyContent
+      : this.routeFile
       ? `if (${this.matcher.exactDecl("pathname")}) { ${bodyContent} }`
       : "";
 
@@ -196,7 +209,7 @@ ${middlewareImports}`;
     });
 
     if (this.fallback) {
-      body += this.fallback.generateBodyContent();
+      body += this.generateMiddlewares() + this.fallback.generateBodyContent();
 
       this.fallback.getRouteIdentImports().forEach((routeImport) => {
         routeImport.filterUnused(body);
@@ -208,6 +221,8 @@ ${middlewareImports}`;
 
     const handler =
       this.isRoot || (this.children.size === 0 && this.fallback === null)
+        ? body
+        : this.isMiddleware
         ? body
         : `if (${this.matcher.startDecl("pathname")}) {${body}}`;
 
