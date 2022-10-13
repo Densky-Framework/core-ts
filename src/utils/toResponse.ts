@@ -2,7 +2,7 @@ import { HTTPError } from "../http/HTTPError.ts";
 import { HTTPResponse } from "../http/HTTPResponse.ts";
 
 export function toResponse(
-  response: HTTPResponse | Response | HTTPError | Error
+  response: HTTPResponse | Response | HTTPError | Error | void
 ): Response {
   // TODO
   if (response instanceof HTTPResponse)
@@ -17,7 +17,7 @@ export function toResponse(
 
 export const toResponseFnDecl = (name = "toResponse", dusky = "$Dusky$") => `
 function ${name} (
-  response: ${dusky}.HTTPResponse | Response | ${dusky}.HTTPError | Error
+  response: ${dusky}.HTTPResponse | Response | ${dusky}.HTTPError | Error | void
 ): Response {
   if (response instanceof ${dusky}.HTTPResponse) return new Response("Teapot (ToResponse)");
   if (response instanceof Response) return response;
