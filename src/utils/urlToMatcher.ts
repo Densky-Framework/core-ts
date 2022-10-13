@@ -4,6 +4,7 @@ export interface UrlMatcher {
   start(target: string): boolean;
   startDecl(target: string): string;
   prepareDecl(target: string, val: string): string;
+  serialDecl(target: string): string;
 }
 
 export type UrlMatcherPart =
@@ -51,7 +52,7 @@ export function urlToMatcher(url: string): UrlMatcher {
       exactDecl(target) {
         return `(() => {
           const t = urlMatcherPrepare_${target};
-          const p = ${partsSerialized};
+          const p = urlMatcherSerial_${target};
 
           if (t.length !== p.length) return false;
           return t.every((tp,i) => {
@@ -100,17 +101,12 @@ export function urlToMatcher(url: string): UrlMatcher {
         })()`;
       },
       prepareDecl(target, val) {
-        return `const urlMatcherPrepare_${target}=((target)=>{
-          const t = target.split("/");
-          t.shift();
-          l: {
-            const la = t.pop();
-            if (la === undefined || la.length === 0) break l;
-            t.push(la);
-          }
-          return t;
-        })(${val})`;
+        return `const urlMatcherPrepare_${target}=${val}.byParts;`;
       },
+
+      serialDecl(target) {
+        return `const urlMatcherSerial_${target} = ${partsSerialized};`
+      }
     };
   }
 
@@ -128,8 +124,11 @@ export function urlToMatcher(url: string): UrlMatcher {
       return "urlMatcherPrepare_" + target + ".startsWith('" + url + "')";
     },
     prepareDecl(target, val) {
-      return `const urlMatcherPrepare_${target} = ${val};`;
+      return `const urlMatcherPrepare_${target} = ${val}.pathname;`;
     },
+    serialDecl(_target) {
+      return "";
+    }
   };
 }
 
