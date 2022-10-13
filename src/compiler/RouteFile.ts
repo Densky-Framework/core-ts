@@ -104,23 +104,29 @@ The class must be exported as default and will contains the implement of 'IContr
     const methodRegex = new RegExp(methodRegex_);
     // METHOD(REQPARAM: HTTPRequest): RETURN_TYPE {
     const handlerFnRegex = new RegExp(
-      `(${methodRegex_})\\s*\\(\\s*(?:([a-zA-Z0-9_]+):\\s*HTTPRequest\\s*)?\\)(?:\\s*:\\s*[^{]+\\s*)? {`
+      `(${methodRegex_})\\s*\\(\\s*(?:([a-zA-Z0-9_]+):\\s*HTTPRequest\\s*)?\\)(?:\\s*:\\s*[^{]+\\s*)?\\s*{`
     );
 
     const nextHandler = (remain: string) => {
+      // Prevent continue if all handlers are filled
       if (handlers.length >= 5) return;
+
+      // Empty file
       if (remain.length <= 0) return;
 
+      // Initial handler search, first search method
       const handlerIdx = remain.search(methodRegex);
       if (handlerIdx === -1) return;
 
+      // Crop from that position
       remain = remain.slice(handlerIdx);
 
+      // second, verify if match with handler declaration
       const match = remain.match(handlerFnRegex);
       if (match === null) return;
 
       const [str, method, reqParam] = match;
-      remain = remain.slice(str.length).trim();
+      remain = remain.slice(str.length + 1).trim();
 
       let braceCount = 1;
       let tmpRemain = remain;
@@ -130,27 +136,41 @@ The class must be exported as default and will contains the implement of 'IContr
         const nearCloseBracket = tmpRemain.search("}");
         const nearOpenBracket = tmpRemain.search("{");
 
+        // Both can't be negative
         if (nearCloseBracket === -1 && nearOpenBracket === -1) {
-          throw new Error("{dim [${relPath}]} Bad Code");
+          throw new Error(chalk`{dim [${relPath}]} Bad Code`);
         }
 
         // If 'closeBracket' is more close then substract one to braceCount
-        if (nearOpenBracket === -1 || nearOpenBracket > nearCloseBracket) {
+        // Open = -1, Close = 0..
+        if (
+          nearCloseBracket >= 0 &&
+          (nearOpenBracket === -1 || nearOpenBracket > nearCloseBracket)
+        ) {
           braceCount--;
           length += nearCloseBracket + 1;
-          tmpRemain = tmpRemain.slice(nearCloseBracket + 1).trim();
-          continue;
+          tmpRemain = tmpRemain.slice(nearCloseBracket + 1);
         }
 
-        // else, add one to 'braceCount'
-        braceCount++;
-        length += nearOpenBracket + 1;
-        tmpRemain = tmpRemain.slice(nearOpenBracket + 1).trim();
+        if (
+          nearOpenBracket !== -1 &&
+          (nearCloseBracket === -1 || nearOpenBracket < nearCloseBracket)
+        ) {
+          // else, add one to 'braceCount'
+          // Open = 0.., Close = -1..
+          braceCount++;
+          length += nearOpenBracket + 1;
+          tmpRemain = tmpRemain.slice(nearOpenBracket + 1);
+        }
       }
 
-      const end =
-        (reqParam ? `let ${reqParam} = req;\n` : "") +
-        remain.slice(0, length - 1).trim();
+      // Set variable only if it's different to "req"
+      const reqDecl =
+        reqParam && reqParam !== "req"
+          ? `let ${reqParam}: $Dusky$.HTTPRequest = req;\n`
+          : "";
+
+      const end = reqDecl + remain.slice(0, length - 1).trim();
 
       handlers.push(
         new RouteHandler(method as HTTPMethodStr, end, reqParam ?? null)

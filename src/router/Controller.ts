@@ -3,7 +3,7 @@ import { HTTPError, HTTPRequest, HTTPResponse } from "../http/index.ts";
 
 export type Endpoint = (
     req: HTTPRequest
-  ) => Promisable<HTTPResponse | Response | HTTPError | Error>
+  ) => Promisable<HTTPResponse | Response | HTTPError | Error | void>
 
 export interface IController {
   GET?: Endpoint;
