@@ -234,7 +234,7 @@ ${routeImportsStr.join(";\n")}
 
 ${this.matcher.serialDecl("pathname")}
 
-async function handler(req: $Dusky$.HTTPRequest): Promise<Response | $Dusky$.HTTPResponse | $Dusky$.HTTPError | void> {
+async function handler(req: $Dusky$.HTTPRequest): Promise<$Dusky$.HTTPPossibleResponse> {
   ${this.matcher.prepareDecl("pathname", "req")}
   ${handler}
 }
@@ -242,7 +242,6 @@ async function handler(req: $Dusky$.HTTPRequest): Promise<Response | $Dusky$.HTT
 export default handler;
 `;
 
-    // console.log(this.relativePath);
     // console.log(content);
 
     return tsFormatter.formatText(this.filePath, content);
