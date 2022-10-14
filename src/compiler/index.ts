@@ -82,7 +82,15 @@ export async function compile(options: CompileOptions) {
   const fileTrees = new Map<string, RoutesTree>();
 
   const fileEntries = Array.from(files.entries()).sort(([a, _], [b, __]) =>
-    a === "index" ? -1 : a.split("/").length - b.split("/").length
+    a.endsWith("_index")
+      ? -1
+      : b.endsWith("_index")
+      ? 1
+      : a.endsWith("]")
+      ? 1
+      : b.endsWith("]")
+      ? -1
+      : a.split("/").length - b.split("/").length
   );
 
   const putFileRecursive = (path: string, tree: RoutesTree) => {
@@ -105,11 +113,16 @@ export async function compile(options: CompileOptions) {
     fileTrees.set(path, tree);
   };
 
-  for (const [path, file] of fileEntries) {
-    if (path === "index") {
+  fileTrees.set("/", fileRoutesTree);
+
+  for (let [path, file] of fileEntries) {
+    if (path === "_index") {
       fileRoutesTree.routeFile = file;
-      fileTrees.set("/", fileRoutesTree);
       continue;
+    }
+
+    if (path.endsWith("_index")) {
+      path = pathMod.dirname(path);
     }
 
     const currentRouteTree = new RoutesTree(path, file.outPath, file);
@@ -145,7 +158,7 @@ export async function compile(options: CompileOptions) {
 
     if (route.middleware) {
       console.log(
-        prefix + "  ■",
+        prefix + chalk.dim("|") + " ■",
         chalk.gray("middleware"),
         chalk.dim(
           "(" +
@@ -156,12 +169,12 @@ export async function compile(options: CompileOptions) {
     }
 
     for (const child of route.children) {
-      showRouteGraph(child, prefix + "  ");
+      showRouteGraph(child, prefix + chalk.dim("| "));
     }
 
     if (route.fallback) {
       console.log(
-        prefix + "  ■",
+        prefix + chalk.dim("|") + " ■",
         chalk.gray("...fallback"),
         chalk.dim(
           "(" +
