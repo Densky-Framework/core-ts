@@ -1,11 +1,13 @@
 {
   "$schema": "https://deno.land/x/deno/cli/schemas/config-file.v1.json",
   "compilerOptions": {
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "deno.window",
-      "esnext"
-    ]
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true
+  },
+
+  "tasks": {
+    "test": "deno test src --coverage=cov/"
   }
 }
