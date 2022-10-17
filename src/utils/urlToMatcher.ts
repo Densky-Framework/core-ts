@@ -89,7 +89,7 @@ export function urlToMatcher(url: string): UrlMatcher {
       startDecl(target) {
         return `(() => {
           const t = urlMatcherPrepare_${target};
-          const p = ${partsSerialized};
+          const p = urlMatcherSerial_${target};
 
           if (t.length < p.length) return false;
           return p.every((tp,i) => {
