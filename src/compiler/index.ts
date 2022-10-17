@@ -1,10 +1,10 @@
 import { ChalkInstance } from "https://deno.land/x/chalk_deno@v4.1.1-deno/index.d.ts";
-import { chalk } from "../chalk.ts";
-import { fs, path, path as pathMod } from "../deps.ts";
+import { chalk, fs, path, path as pathMod } from "../deps.ts";
 import { HttpRouteFile } from "./http/HttpRouteFile.ts";
 import { RoutesTree } from "./shared/RoutesTree.ts";
 import { toResponseFnDecl } from "../utils.ts";
 import { HttpRoutesTree } from "./http/HttpRoutesTree.ts";
+import { graphToTerminal } from "./grapher/terminal.ts";
 
 export type CompileOptions = {
   routesPath: string;
@@ -133,58 +133,8 @@ export async function compile(options: CompileOptions) {
 
   // Show route graph
 
-  const showRouteGraph = (route: RoutesTree, prefix = "") => {
-    let out = prefix;
-
-    out += route.urlPath === "/"
-      ? route.routeFile ? "★ " : "☆ "
-      : route.routeFile
-      ? "▲ "
-      : "△ ";
-    out +=
-      // Remove parent path prefix, except at index(/)
-      !route.parent || route.parent.urlPath === "/"
-        ? route.urlPath
-        : route.urlPath.replace(route.parent.urlPath, "");
-    out += route.routeFile && route.routeFile.handlers.size > 0
-      ? chalk.dim(
-        " (" + Array.from(route.routeFile.handlers.keys()).join(", ") + ")",
-      )
-      : "";
-
-    console.log(out);
-
-    if (route.middleware) {
-      console.log(
-        prefix + chalk.dim("|") + " ■",
-        chalk.gray("middleware"),
-        chalk.dim(
-          "(" +
-            Array.from(route.middleware.routeFile!.handlers.keys()).join(", ") +
-            ")",
-        ),
-      );
-    }
-
-    for (const child of route.children) {
-      showRouteGraph(child, prefix + chalk.dim("| "));
-    }
-
-    if (route.fallback) {
-      console.log(
-        prefix + chalk.dim("|") + " ■",
-        chalk.gray("...fallback"),
-        chalk.dim(
-          "(" +
-            Array.from(route.fallback.routeFile!.handlers.keys()).join(", ") +
-            ")",
-        ),
-      );
-    }
-  };
-
   console.log("Route structure:");
-  showRouteGraph(fileRoutesTree);
+  graphToTerminal(fileRoutesTree);
   console.log("");
 
   // Legend
@@ -207,7 +157,7 @@ export async function compile(options: CompileOptions) {
 
   {
     // dusky.main.ts
-    const mainPath = pathMod.join(opts.outDir, "dusky.main.ts");
+    const mainPath = pathMod.join(opts.outDir, "http.dusky.ts");
     await fs.ensureFile(mainPath);
     await Deno.writeTextFile(
       mainPath,
