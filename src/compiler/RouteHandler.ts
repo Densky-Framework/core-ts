@@ -4,6 +4,6 @@ export class RouteHandler {
   constructor(
     readonly method: HTTPMethodStr,
     public body: string,
-    readonly reqParam?: string
+    readonly reqParam?: string,
   ) {}
 }

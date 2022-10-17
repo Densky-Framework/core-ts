@@ -6,7 +6,7 @@ export class HTTPRequest {
   readonly url: URL;
   readonly pathname: string;
 
-  /** @internal */ 
+  /** @internal */
   readonly byParts: string[];
 
   constructor(readonly event: Deno.RequestEvent) {

@@ -9,14 +9,14 @@ export interface UrlMatcher {
 
 export type UrlMatcherPart =
   | {
-      raw: string;
-      isVar: false;
-    }
+    raw: string;
+    isVar: false;
+  }
   | {
-      raw: string;
-      isVar: true;
-      varname: string;
-    };
+    raw: string;
+    isVar: true;
+    varname: string;
+  };
 
 export function urlToMatcher(url: string): UrlMatcher {
   const parts = getUrlMatcherParts(url);
@@ -105,8 +105,8 @@ export function urlToMatcher(url: string): UrlMatcher {
       },
 
       serialDecl(target) {
-        return `const urlMatcherSerial_${target} = ${partsSerialized};`
-      }
+        return `const urlMatcherSerial_${target} = ${partsSerialized};`;
+      },
     };
   }
 
@@ -128,7 +128,7 @@ export function urlToMatcher(url: string): UrlMatcher {
     },
     serialDecl(_target) {
       return "";
-    }
+    },
   };
 }
 

@@ -2,17 +2,17 @@ import { createStreaming } from "https://deno.land/x/dprint@0.2.0/mod.ts";
 import { chalk } from "../chalk.ts";
 import { fs, path, pathPosix } from "../deps.ts";
 import { UrlMatcher, urlToMatcher } from "../utils.ts";
-import { RouteFile } from "./RouteFile.ts";
+import { HttpRouteFile } from "./http/HttpRouteFile.ts";
 import { RouteImport } from "./RouteImport.ts";
 const pathMod = path;
 
 // Setup Formatter
 const tsFormatter = await createStreaming(
-  fetch("https://plugins.dprint.dev/typescript-0.74.0.wasm")
+  fetch("https://plugins.dprint.dev/typescript-0.74.0.wasm"),
 );
 tsFormatter.setConfig(
   { indentWidth: 2, lineWidth: 80 },
-  { semiColons: "always", quoteStyle: "preferDouble", quoteProps: "asNeeded" }
+  { semiColons: "always", quoteStyle: "preferDouble", quoteProps: "asNeeded" },
 );
 
 export class RoutesTree {
@@ -32,8 +32,8 @@ export class RoutesTree {
   constructor(
     readonly path: string,
     readonly filePath: string,
-    public routeFile: RouteFile | null,
-    readonly isRoot: boolean = false
+    public routeFile: HttpRouteFile | null,
+    readonly isRoot: boolean = false,
   ) {
     this.dirname = pathMod.dirname(filePath);
     this.relativePath = pathMod.relative(Deno.cwd(), filePath);
@@ -97,25 +97,27 @@ export class RoutesTree {
 
     const childrenImports = Array.from(this.children)
       .map((child, i) => {
-        return `import $child$${i} from "./${path.relative(
-          this.dirname,
-          child.filePath
-        )}"`;
+        return `import $child$${i} from "./${
+          path.relative(
+            this.dirname,
+            child.filePath,
+          )
+        }"`;
       })
       .join(";\n");
 
     // Omit if it's middleware
-    const middlewareImports = this.isMiddleware
-      ? ""
-      : this.middlewares
-          .map(
-            (mid, i) =>
-              `import $middle$${i} from "./${path.relative(
-                this.dirname,
-                mid.filePath
-              )}"`
-          )
-          .join(";\n");
+    const middlewareImports = this.isMiddleware ? "" : this.middlewares
+      .map(
+        (mid, i) =>
+          `import $middle$${i} from "./${
+            path.relative(
+              this.dirname,
+              mid.filePath,
+            )
+          }"`,
+      )
+      .join(";\n");
 
     return `import * as $Dusky$ from "dusky";
 ${childrenImports};
@@ -127,7 +129,7 @@ ${middlewareImports}`;
 
     const map = new Map<string, RouteImport>();
 
-    this.routeFile.imports.forEach(([im, path]) => {
+    this.routeFile.topImport.forEach(([im, path]) => {
       const def = RouteImport.getDefOf(im);
 
       const routeImport = map.get(path) ?? new RouteImport(path);
@@ -146,11 +148,11 @@ ${middlewareImports}`;
   generateMiddlewares() {
     return !this.isMiddleware
       ? this.middlewares
-          .map(
-            (_, i) =>
-              `const $mid$${i} = await $middle$${i}(req); if ($mid$${i}) return $mid$${i};`
-          )
-          .join("\n")
+        .map(
+          (_, i) =>
+            `const $mid$${i} = await $middle$${i}(req); if ($mid$${i}) return $mid$${i};`,
+        )
+        .join("\n")
       : "";
   }
 
@@ -160,18 +162,18 @@ ${middlewareImports}`;
 
     return this.routeFile
       ? Array.from(this.routeFile.handlers.entries())
-          .map(([method, handl]) => {
-            return method !== "ANY"
-              ? `if (req.method === "${method}") {
+        .map(([method, handl]) => {
+          return method !== "ANY"
+            ? `if (req.method === "${method}") {
     ${middlewares}
     ${handl.body}
   }`
-              : middlewares + handl.body;
-          })
-          .join("\n") +
-          (!hasAny && !this.isMiddleware
-            ? "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
-            : "")
+            : middlewares + handl.body;
+        })
+        .join("\n") +
+        (!hasAny && !this.isMiddleware
+          ? "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
+          : "")
       : "";
   }
 
@@ -179,7 +181,7 @@ ${middlewareImports}`;
     const childCalls = Array.from(this.children)
       .map(
         (_, i) =>
-          `const out$${i} = await $child$${i}(req); if (out$${i}) return out$${i}`
+          `const out$${i} = await $child$${i}(req); if (out$${i}) return out$${i}`,
       )
       .join(";\n");
 
@@ -261,7 +263,7 @@ export default handler;
           console.log(chalk.red("[Error] Error at", ch.relativePath));
           return e;
         })
-      )
+      ),
     );
   }
 }

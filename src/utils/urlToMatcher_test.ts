@@ -18,7 +18,7 @@ bdd.describe("urlToMatcher", () => {
 
     expect(matcher.exactDecl("target")).to.be.equal("target === '/my/path'");
     expect(matcher.startDecl("target")).to.be.equal(
-      "target.startsWith('/my/path')"
+      "target.startsWith('/my/path')",
     );
     expect(matcher.prepareDecl("target", "val")).to.be.empty;
   });

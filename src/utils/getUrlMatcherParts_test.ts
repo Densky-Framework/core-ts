@@ -46,13 +46,15 @@ bdd.describe("getUrlMatcherParts", () => {
   });
 
   bdd.it("With multiple vars", () => {
-    const parts = getUrlMatcherParts("/[atBeginning]/p1/[v1]/p2/[v2]/[v3]/[str][ange]/last/");
+    const parts = getUrlMatcherParts(
+      "/[atBeginning]/p1/[v1]/p2/[v2]/[v3]/[str][ange]/last/",
+    );
 
     expect(parts).to.be.an("Array").with.lengthOf(8);
     expect(parts[0]).to.be.an("object").deep.equal({
       raw: "[atBeginning]",
       isVar: true,
-      varname: "atBeginning"
+      varname: "atBeginning",
     });
     expect(parts[1]).to.be.an("object").deep.equal({
       raw: "p1",
@@ -61,7 +63,7 @@ bdd.describe("getUrlMatcherParts", () => {
     expect(parts[2]).to.be.an("object").deep.equal({
       raw: "[v1]",
       isVar: true,
-      varname: "v1"
+      varname: "v1",
     });
     expect(parts[3]).to.be.an("object").deep.equal({
       raw: "p2",
@@ -70,17 +72,17 @@ bdd.describe("getUrlMatcherParts", () => {
     expect(parts[4]).to.be.an("object").deep.equal({
       raw: "[v2]",
       isVar: true,
-      varname: "v2"
+      varname: "v2",
     });
     expect(parts[5]).to.be.an("object").deep.equal({
       raw: "[v3]",
       isVar: true,
-      varname: "v3"
+      varname: "v3",
     });
     expect(parts[6]).to.be.an("object").deep.equal({
       raw: "[str][ange]",
       isVar: true,
-      varname: "str][ange"
+      varname: "str][ange",
     });
     expect(parts[7]).to.be.an("object").deep.equal({
       raw: "last",

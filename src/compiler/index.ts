@@ -1,7 +1,7 @@
 import { ChalkInstance } from "https://deno.land/x/chalk_deno@v4.1.1-deno/index.d.ts";
 import { chalk } from "../chalk.ts";
 import { fs, path as pathMod } from "../deps.ts";
-import { RouteFile } from "./RouteFile.ts";
+import { HttpRouteFile } from "./http/HttpRouteFile.ts";
 import { RoutesTree } from "./RoutesTree.ts";
 import { toResponseFnDecl } from "../utils.ts";
 
@@ -14,14 +14,14 @@ export type CompileOptions = {
 const makeLog = (verbose: boolean, rawStr: string, color: ChalkInstance) => {
   return verbose
     ? (...data: unknown[]) =>
-        console.log(
-          color(rawStr),
-          ...data.map((v) =>
-            typeof v === "string"
-              ? v.replaceAll("\n", "\n" + " ".repeat(rawStr.length + 1))
-              : v
-          )
-        )
+      console.log(
+        color(rawStr),
+        ...data.map((v) =>
+          typeof v === "string"
+            ? v.replaceAll("\n", "\n" + " ".repeat(rawStr.length + 1))
+            : v
+        ),
+      )
     : (..._: unknown[]) => {};
 };
 
@@ -39,7 +39,7 @@ export async function compile(options: CompileOptions) {
   if (!(await request_permisions(opts))) return;
 
   log_info("Scanning files");
-  const files = new Map<string, RouteFile>();
+  const files = new Map<string, HttpRouteFile>();
 
   const glob = fs.expandGlob("**/*.ts", {
     root: opts.routesPath,
@@ -56,9 +56,9 @@ export async function compile(options: CompileOptions) {
       return;
     }
 
-    const routeFile = new RouteFile(
+    const routeFile = new HttpRouteFile(
       file.path,
-      pathMod.join(opts.outDir, relPath)
+      pathMod.join(opts.outDir, relPath),
     );
 
     try {
@@ -77,7 +77,7 @@ export async function compile(options: CompileOptions) {
     "/",
     pathMod.join(opts.outDir, "index.ts"),
     null,
-    true
+    true,
   );
   const fileTrees = new Map<string, RoutesTree>();
 
@@ -103,7 +103,7 @@ export async function compile(options: CompileOptions) {
       const fatherRouteTree = new RoutesTree(
         fatherRoute,
         pathMod.join(opts.outDir, fatherRoute + ".ts"),
-        null
+        null,
       );
       fatherRouteTree.addChild(tree);
       fileTrees.set(fatherRoute, fatherRouteTree);
@@ -134,25 +134,21 @@ export async function compile(options: CompileOptions) {
   const showRouteGraph = (route: RoutesTree, prefix = "") => {
     let out = prefix;
 
-    out +=
-      route.path === "/"
-        ? route.routeFile
-          ? "★ "
-          : "☆ "
-        : route.routeFile
-        ? "▲ "
-        : "△ ";
+    out += route.path === "/"
+      ? route.routeFile ? "★ " : "☆ "
+      : route.routeFile
+      ? "▲ "
+      : "△ ";
     out +=
       // Remove parent path prefix, except at index(/)
       !route.parent || route.parent.path === "/"
         ? route.path
         : route.path.replace(route.parent.path, "");
-    out +=
-      route.routeFile && route.routeFile.handlers.size > 0
-        ? chalk.dim(
-            " (" + Array.from(route.routeFile.handlers.keys()).join(", ") + ")"
-          )
-        : "";
+    out += route.routeFile && route.routeFile.handlers.size > 0
+      ? chalk.dim(
+        " (" + Array.from(route.routeFile.handlers.keys()).join(", ") + ")",
+      )
+      : "";
 
     console.log(out);
 
@@ -163,8 +159,8 @@ export async function compile(options: CompileOptions) {
         chalk.dim(
           "(" +
             Array.from(route.middleware.routeFile!.handlers.keys()).join(", ") +
-            ")"
-        )
+            ")",
+        ),
       );
     }
 
@@ -179,8 +175,8 @@ export async function compile(options: CompileOptions) {
         chalk.dim(
           "(" +
             Array.from(route.fallback.routeFile!.handlers.keys()).join(", ") +
-            ")"
-        )
+            ")",
+        ),
       );
     }
   };
@@ -222,7 +218,7 @@ ${toResponseFnDecl()}
 
 export default async function requestHandler(req: Deno.RequestEvent, conn: Deno.Conn): Promise<Response> {
   return toResponse(await mainHandler(new $Dusky$.HTTPRequest(req)) ?? new $Dusky$.HTTPError(StatusCode.NOT_FOUND));
-}`
+}`,
     );
   }
 
@@ -236,7 +232,7 @@ function normalize_options(options: CompileOptions): Required<CompileOptions> {
       outDir: "",
       verbose: false,
     },
-    options
+    options,
   );
 
   opts.routesPath = new URL(opts.routesPath).pathname;
@@ -254,7 +250,7 @@ function normalize_options(options: CompileOptions): Required<CompileOptions> {
 }
 
 async function request_permisions(
-  opts: Required<CompileOptions>
+  opts: Required<CompileOptions>,
 ): Promise<boolean> {
   log_info("Prompting permissions");
 
@@ -279,7 +275,7 @@ async function request_permisions(
         name: "read",
         path: path,
       },
-      chalk`Read permission {dim (${path})}`
+      chalk`Read permission {dim (${path})}`,
     );
 
   const write = (path: string) =>
@@ -288,7 +284,7 @@ async function request_permisions(
         name: "write",
         path: path,
       },
-      chalk`Write permission {dim (${path})}`
+      chalk`Write permission {dim (${path})}`,
     );
 
   if (!(await read(opts.routesPath))) return false;

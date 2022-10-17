@@ -3,13 +3,13 @@ import { BaseServer, BaseServerOptions } from "./BaseServer.ts";
 
 type RequestHandler = (
   request: Deno.RequestEvent,
-  conn: Deno.Conn
+  conn: Deno.Conn,
 ) => Promisable<Response>;
 
 export class Server extends BaseServer {
   constructor(
     options: BaseServerOptions,
-    readonly requestHandler: RequestHandler
+    readonly requestHandler: RequestHandler,
   ) {
     super(options);
   }

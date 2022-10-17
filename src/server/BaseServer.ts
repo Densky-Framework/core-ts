@@ -28,7 +28,7 @@ export abstract class BaseServer {
 
     if (options.verbose) {
       console.log(
-        `[SERVER] Initialized at ${options.hostname}:${options.port}`
+        `[SERVER] Initialized at ${options.hostname}:${options.port}`,
       );
     }
   }
@@ -41,7 +41,7 @@ export abstract class BaseServer {
 
   handleServerError(
     request: Deno.RequestEvent,
-    error: Error
+    error: Error,
   ): Promisable<void> {
     request.respondWith(HTTPError.fromError(error).toResponse());
   }
@@ -72,6 +72,6 @@ export abstract class BaseServer {
 
   abstract handleRequest(
     request: Deno.RequestEvent,
-    conn: Deno.Conn
+    conn: Deno.Conn,
   ): Promisable<Response>;
 }
