@@ -1,5 +1,6 @@
-import { RouteHandler } from "../RouteHandler.ts";
+import { HttpRouteHandler } from "./HttpRouteHandler.ts";
 import { chalk, path } from "../../deps.ts";
+import { HTTPMethodStr } from "../../common.ts";
 
 /** @internal */
 export const errors = {
@@ -17,13 +18,13 @@ export function makeError(relPath: string, error: string): Error {
 export function handleParser(
   content: string,
   filePath: string,
-): RouteHandler[] {
+): HttpRouteHandler[] {
   const relPath = path.relative(Deno.cwd(), filePath);
   if (content.length < 10) {
     throw makeError(relPath, errors.EMPTY);
   }
 
-  const handlers: RouteHandler[] = [];
+  const handlers: HttpRouteHandler[] = [];
 
   const classColIndex = content.search(
     /^\s*export\s+default\s+class\s+(.+)\simplements\s+(.*)IController/gm,
@@ -107,7 +108,7 @@ export function handleParser(
     const end = reqDecl + remain.slice(0, length - 1).trim();
 
     handlers.push(
-      new RouteHandler(method as HTTPMethodStr, end, reqParam ?? null),
+      new HttpRouteHandler(method as HTTPMethodStr, end, reqParam ?? null),
     );
 
     nextHandler(remain.slice(length));

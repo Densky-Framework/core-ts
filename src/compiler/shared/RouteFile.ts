@@ -1,10 +1,8 @@
 import { path as pathMod } from "../../deps.ts";
-import { RouteHandler } from "../RouteHandler.ts";
-import { HTTPMethodStr } from "../../common.ts";
 
 export abstract class RouteFile {
   topImport = new Set<[imports: string, path: string]>();
-  dynamicimports = new Set<[imports: string, path: string]>();
+  dynamicimports = new Set<[str: string, path: string]>();
 
   constructor(readonly filePath: string, public outPath: string) {}
 

@@ -1,21 +1,12 @@
-import { createStreaming } from "https://deno.land/x/dprint@0.2.0/mod.ts";
-import { chalk } from "../chalk.ts";
-import { fs, path, pathPosix } from "../deps.ts";
-import { UrlMatcher, urlToMatcher } from "../utils.ts";
-import { HttpRouteFile } from "./http/HttpRouteFile.ts";
+import { chalk } from "../../chalk.ts";
+import { fs, path, pathPosix } from "../../deps.ts";
+import { UrlMatcher, urlToMatcher } from "../../utils.ts";
+import { format } from "../formatter.ts";
+import { HttpRouteFile } from "../http/HttpRouteFile.ts";
 import { RouteImport } from "./RouteImport.ts";
 const pathMod = path;
 
-// Setup Formatter
-const tsFormatter = await createStreaming(
-  fetch("https://plugins.dprint.dev/typescript-0.74.0.wasm"),
-);
-tsFormatter.setConfig(
-  { indentWidth: 2, lineWidth: 80 },
-  { semiColons: "always", quoteStyle: "preferDouble", quoteProps: "asNeeded" },
-);
-
-export class RoutesTree {
+export abstract class RoutesTree {
   #parent: RoutesTree | null = null;
   children = new Set<RoutesTree>();
   fallback: RoutesTree | null = null;
@@ -30,7 +21,7 @@ export class RoutesTree {
   readonly isMiddleware: boolean;
 
   constructor(
-    readonly path: string,
+    readonly urlPath: string,
     readonly filePath: string,
     public routeFile: HttpRouteFile | null,
     readonly isRoot: boolean = false,
@@ -38,16 +29,16 @@ export class RoutesTree {
     this.dirname = pathMod.dirname(filePath);
     this.relativePath = pathMod.relative(Deno.cwd(), filePath);
 
-    path = path.trim();
+    urlPath = urlPath.trim();
 
     // Normalize to have slash at the beginning
-    if (!pathPosix.isAbsolute(path)) {
-      path = "/" + path;
+    if (!pathPosix.isAbsolute(urlPath)) {
+      urlPath = "/" + urlPath;
     }
 
-    this.path = path;
-    this.isMiddleware = this.path.endsWith("_middleware");
-    this.matcher = urlToMatcher(this.path);
+    this.urlPath = urlPath;
+    this.isMiddleware = this.urlPath.endsWith("_middleware");
+    this.matcher = urlToMatcher(this.urlPath);
   }
 
   get parent(): RoutesTree | null {
@@ -77,13 +68,18 @@ export class RoutesTree {
     this.middlewares = stack.reverse();
   }
 
-  addChild(route: RoutesTree) {
-    if (route.path.endsWith("_fallback")) {
+  abstract handleConvention(name: string, route: typeof this): boolean;
+
+  addChild(route: typeof this) {
+    if (route.urlPath.endsWith("_fallback")) {
       this.fallback = route;
-    } else if (route.path.endsWith("_middleware")) {
+    } else if (route.urlPath.endsWith("_middleware")) {
       this.middleware = route;
       this.calculateMiddlewares();
     } else {
+      const match = route.urlPath.match(/_(.+)/);
+      if (match && this.handleConvention(match[1], route)) return;
+
       this.children.add(route);
     }
 
@@ -246,7 +242,7 @@ export default handler;
 
     // console.log(content);
 
-    return tsFormatter.formatText(this.filePath, content);
+    return format(this.filePath, content);
   }
 
   async writeFile() {

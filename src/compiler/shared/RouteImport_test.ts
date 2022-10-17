@@ -1,6 +1,5 @@
 import { RouteImport, RouteImportType } from "./RouteImport.ts";
-import "../test_deps.ts";
-import { bdd } from "../test_deps.ts";
+import { bdd } from "../../test_deps.ts";
 const expect = chai.expect;
 
 function setSize(n: number) {

@@ -1,12 +1,12 @@
 import { RouteFile } from "../shared/RouteFile.ts";
-import { RouteHandler } from "../RouteHandler.ts";
 import { HTTPMethodStr } from "../../common.ts";
 import { handleParser } from "./handleParser.ts";
+import { HttpRouteHandler } from "./HttpRouteHandler.ts";
 
 export class HttpRouteFile extends RouteFile {
-  handlers = new Map<HTTPMethodStr, RouteHandler>();
+  handlers = new Map<HTTPMethodStr, HttpRouteHandler>();
 
-  setHandler(method: HTTPMethodStr, body: RouteHandler) {
+  setHandler(method: HTTPMethodStr, body: HttpRouteHandler) {
     body.body = this.resolveDynamicImports(body.body);
 
     this.handlers.set(method, body);

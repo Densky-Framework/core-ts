@@ -1,12 +1,14 @@
 import { ChalkInstance } from "https://deno.land/x/chalk_deno@v4.1.1-deno/index.d.ts";
 import { chalk } from "../chalk.ts";
-import { fs, path as pathMod } from "../deps.ts";
+import { fs, path, path as pathMod } from "../deps.ts";
 import { HttpRouteFile } from "./http/HttpRouteFile.ts";
-import { RoutesTree } from "./RoutesTree.ts";
+import { RoutesTree } from "./shared/RoutesTree.ts";
 import { toResponseFnDecl } from "../utils.ts";
+import { HttpRoutesTree } from "./http/HttpRoutesTree.ts";
 
 export type CompileOptions = {
   routesPath: string;
+  wsPath?: string | false;
   outDir?: string;
   verbose?: boolean;
 };
@@ -73,7 +75,7 @@ export async function compile(options: CompileOptions) {
 
   log_success_v("Files count:", files.size);
 
-  const fileRoutesTree = new RoutesTree(
+  const fileRoutesTree = new HttpRoutesTree(
     "/",
     pathMod.join(opts.outDir, "index.ts"),
     null,
@@ -100,7 +102,7 @@ export async function compile(options: CompileOptions) {
     if (fatherRouteTree) {
       fatherRouteTree.addChild(tree);
     } else {
-      const fatherRouteTree = new RoutesTree(
+      const fatherRouteTree = new HttpRoutesTree(
         fatherRoute,
         pathMod.join(opts.outDir, fatherRoute + ".ts"),
         null,
@@ -125,7 +127,7 @@ export async function compile(options: CompileOptions) {
       path = pathMod.dirname(path);
     }
 
-    const currentRouteTree = new RoutesTree(path, file.outPath, file);
+    const currentRouteTree = new HttpRoutesTree(path, file.outPath, file);
     putFileRecursive("/" + path, currentRouteTree);
   }
 
@@ -134,16 +136,16 @@ export async function compile(options: CompileOptions) {
   const showRouteGraph = (route: RoutesTree, prefix = "") => {
     let out = prefix;
 
-    out += route.path === "/"
+    out += route.urlPath === "/"
       ? route.routeFile ? "★ " : "☆ "
       : route.routeFile
       ? "▲ "
       : "△ ";
     out +=
       // Remove parent path prefix, except at index(/)
-      !route.parent || route.parent.path === "/"
-        ? route.path
-        : route.path.replace(route.parent.path, "");
+      !route.parent || route.parent.urlPath === "/"
+        ? route.urlPath
+        : route.urlPath.replace(route.parent.urlPath, "");
     out += route.routeFile && route.routeFile.handlers.size > 0
       ? chalk.dim(
         " (" + Array.from(route.routeFile.handlers.keys()).join(", ") + ")",
@@ -229,14 +231,16 @@ function normalize_options(options: CompileOptions): Required<CompileOptions> {
   const opts: Required<CompileOptions> = Object.assign(
     {
       routesPath: "",
-      outDir: "",
+      wsPath: false,
+      outDir: ".dusky",
       verbose: false,
     },
     options,
   );
 
-  opts.routesPath = new URL(opts.routesPath).pathname;
-  opts.outDir = new URL(opts.outDir).pathname;
+  opts.routesPath = path.resolve(Deno.cwd(), opts.routesPath);
+  opts.outDir = path.resolve(Deno.cwd(), opts.outDir);
+  if (opts.wsPath) opts.wsPath = path.resolve(Deno.cwd(), opts.wsPath);
 
   log_info = makeLog(opts.verbose, "[INFO]", chalk.cyan);
   log_success_v = makeLog(opts.verbose, "[INFO] ", chalk.green);

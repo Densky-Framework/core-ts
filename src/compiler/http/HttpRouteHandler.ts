@@ -1,6 +1,6 @@
-import { HTTPMethodStr } from "../common.ts";
+import { HTTPMethodStr } from "../../common.ts";
 
-export class RouteHandler {
+export class HttpRouteHandler {
   constructor(
     readonly method: HTTPMethodStr,
     public body: string,
