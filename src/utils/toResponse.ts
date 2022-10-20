@@ -2,15 +2,17 @@ import { HTTPError } from "../http/HTTPError.ts";
 import { HTTPResponse } from "../http/HTTPResponse.ts";
 
 export function toResponse(
-  response: HTTPResponse | Response | HTTPError | Error | void
+  response: HTTPResponse | Response | HTTPError | Error | void,
 ): Response {
   // TODO
-  if (response instanceof HTTPResponse)
+  if (response instanceof HTTPResponse) {
     return new Response("Teapot (ToResponse)");
+  }
   if (response instanceof Response) return response;
   if (response instanceof HTTPError) return response.toResponse();
-  if (response instanceof Error)
+  if (response instanceof Error) {
     return HTTPError.fromError(response).toResponse();
+  }
 
   throw new Error("Unreachable code");
 }

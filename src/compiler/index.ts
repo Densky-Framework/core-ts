@@ -1,12 +1,14 @@
 import { ChalkInstance } from "https://deno.land/x/chalk_deno@v4.1.1-deno/index.d.ts";
-import { chalk } from "../chalk.ts";
-import { fs, path as pathMod } from "../deps.ts";
-import { RouteFile } from "./RouteFile.ts";
-import { RoutesTree } from "./RoutesTree.ts";
+import { chalk, fs, path, path as pathMod } from "../deps.ts";
+import { HttpRouteFile } from "./http/HttpRouteFile.ts";
+import { RoutesTree } from "./shared/RoutesTree.ts";
 import { toResponseFnDecl } from "../utils.ts";
+import { HttpRoutesTree } from "./http/HttpRoutesTree.ts";
+import { graphToTerminal } from "./grapher/terminal.ts";
 
 export type CompileOptions = {
   routesPath: string;
+  wsPath?: string | false;
   outDir?: string;
   verbose?: boolean;
 };
@@ -14,14 +16,14 @@ export type CompileOptions = {
 const makeLog = (verbose: boolean, rawStr: string, color: ChalkInstance) => {
   return verbose
     ? (...data: unknown[]) =>
-        console.log(
-          color(rawStr),
-          ...data.map((v) =>
-            typeof v === "string"
-              ? v.replaceAll("\n", "\n" + " ".repeat(rawStr.length + 1))
-              : v
-          )
-        )
+      console.log(
+        color(rawStr),
+        ...data.map((v) =>
+          typeof v === "string"
+            ? v.replaceAll("\n", "\n" + " ".repeat(rawStr.length + 1))
+            : v
+        ),
+      )
     : (..._: unknown[]) => {};
 };
 
@@ -39,7 +41,7 @@ export async function compile(options: CompileOptions) {
   if (!(await request_permisions(opts))) return;
 
   log_info("Scanning files");
-  const files = new Map<string, RouteFile>();
+  const files = new Map<string, HttpRouteFile>();
 
   const glob = fs.expandGlob("**/*.ts", {
     root: opts.routesPath,
@@ -56,9 +58,9 @@ export async function compile(options: CompileOptions) {
       return;
     }
 
-    const routeFile = new RouteFile(
+    const routeFile = new HttpRouteFile(
       file.path,
-      pathMod.join(opts.outDir, relPath)
+      pathMod.join(opts.outDir, relPath),
     );
 
     try {
@@ -73,13 +75,13 @@ export async function compile(options: CompileOptions) {
 
   log_success_v("Files count:", files.size);
 
-  const fileRoutesTree = new RoutesTree(
+  const fileRoutesTree = new HttpRoutesTree(
     "/",
     pathMod.join(opts.outDir, "index.ts"),
     null,
-    true
+    true,
   );
-  const fileTrees = new Map<string, RoutesTree>();
+  const fileTrees = new Map<string, HttpRoutesTree>();
 
   const fileEntries = Array.from(files.entries()).sort(([a, _], [b, __]) =>
     a.endsWith("_index")
@@ -93,17 +95,17 @@ export async function compile(options: CompileOptions) {
       : a.split("/").length - b.split("/").length
   );
 
-  const putFileRecursive = (path: string, tree: RoutesTree) => {
+  const putFileRecursive = (path: string, tree: HttpRoutesTree) => {
     const fatherRoute = pathMod.dirname(path);
     const fatherRouteTree = fileTrees.get(fatherRoute);
 
     if (fatherRouteTree) {
       fatherRouteTree.addChild(tree);
     } else {
-      const fatherRouteTree = new RoutesTree(
+      const fatherRouteTree = new HttpRoutesTree(
         fatherRoute,
         pathMod.join(opts.outDir, fatherRoute + ".ts"),
-        null
+        null,
       );
       fatherRouteTree.addChild(tree);
       fileTrees.set(fatherRoute, fatherRouteTree);
@@ -125,68 +127,14 @@ export async function compile(options: CompileOptions) {
       path = pathMod.dirname(path);
     }
 
-    const currentRouteTree = new RoutesTree(path, file.outPath, file);
+    const currentRouteTree = new HttpRoutesTree(path, file.outPath, file);
     putFileRecursive("/" + path, currentRouteTree);
   }
 
   // Show route graph
 
-  const showRouteGraph = (route: RoutesTree, prefix = "") => {
-    let out = prefix;
-
-    out +=
-      route.path === "/"
-        ? route.routeFile
-          ? "★ "
-          : "☆ "
-        : route.routeFile
-        ? "▲ "
-        : "△ ";
-    out +=
-      // Remove parent path prefix, except at index(/)
-      !route.parent || route.parent.path === "/"
-        ? route.path
-        : route.path.replace(route.parent.path, "");
-    out +=
-      route.routeFile && route.routeFile.handlers.size > 0
-        ? chalk.dim(
-            " (" + Array.from(route.routeFile.handlers.keys()).join(", ") + ")"
-          )
-        : "";
-
-    console.log(out);
-
-    if (route.middleware) {
-      console.log(
-        prefix + chalk.dim("|") + " ■",
-        chalk.gray("middleware"),
-        chalk.dim(
-          "(" +
-            Array.from(route.middleware.routeFile!.handlers.keys()).join(", ") +
-            ")"
-        )
-      );
-    }
-
-    for (const child of route.children) {
-      showRouteGraph(child, prefix + chalk.dim("| "));
-    }
-
-    if (route.fallback) {
-      console.log(
-        prefix + chalk.dim("|") + " ■",
-        chalk.gray("...fallback"),
-        chalk.dim(
-          "(" +
-            Array.from(route.fallback.routeFile!.handlers.keys()).join(", ") +
-            ")"
-        )
-      );
-    }
-  };
-
   console.log("Route structure:");
-  showRouteGraph(fileRoutesTree);
+  graphToTerminal(fileRoutesTree);
   console.log("");
 
   // Legend
@@ -209,7 +157,7 @@ export async function compile(options: CompileOptions) {
 
   {
     // dusky.main.ts
-    const mainPath = pathMod.join(opts.outDir, "dusky.main.ts");
+    const mainPath = pathMod.join(opts.outDir, "http.dusky.ts");
     await fs.ensureFile(mainPath);
     await Deno.writeTextFile(
       mainPath,
@@ -222,7 +170,7 @@ ${toResponseFnDecl()}
 
 export default async function requestHandler(req: Deno.RequestEvent, conn: Deno.Conn): Promise<Response> {
   return toResponse(await mainHandler(new $Dusky$.HTTPRequest(req)) ?? new $Dusky$.HTTPError(StatusCode.NOT_FOUND));
-}`
+}`,
     );
   }
 
@@ -233,14 +181,16 @@ function normalize_options(options: CompileOptions): Required<CompileOptions> {
   const opts: Required<CompileOptions> = Object.assign(
     {
       routesPath: "",
-      outDir: "",
+      wsPath: false,
+      outDir: ".dusky",
       verbose: false,
     },
-    options
+    options,
   );
 
-  opts.routesPath = new URL(opts.routesPath).pathname;
-  opts.outDir = new URL(opts.outDir).pathname;
+  opts.routesPath = path.resolve(Deno.cwd(), opts.routesPath);
+  opts.outDir = path.resolve(Deno.cwd(), opts.outDir);
+  if (opts.wsPath) opts.wsPath = path.resolve(Deno.cwd(), opts.wsPath);
 
   log_info = makeLog(opts.verbose, "[INFO]", chalk.cyan);
   log_success_v = makeLog(opts.verbose, "[INFO] ", chalk.green);
@@ -254,7 +204,7 @@ function normalize_options(options: CompileOptions): Required<CompileOptions> {
 }
 
 async function request_permisions(
-  opts: Required<CompileOptions>
+  opts: Required<CompileOptions>,
 ): Promise<boolean> {
   log_info("Prompting permissions");
 
@@ -279,7 +229,7 @@ async function request_permisions(
         name: "read",
         path: path,
       },
-      chalk`Read permission {dim (${path})}`
+      chalk`Read permission {dim (${path})}`,
     );
 
   const write = (path: string) =>
@@ -288,7 +238,7 @@ async function request_permisions(
         name: "write",
         path: path,
       },
-      chalk`Write permission {dim (${path})}`
+      chalk`Write permission {dim (${path})}`,
     );
 
   if (!(await read(opts.routesPath))) return false;

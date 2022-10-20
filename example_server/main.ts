@@ -1,5 +1,5 @@
 import { Server } from "dusky";
-import requestHandler from "./.dusky/dusky.main.ts";
+import requestHandler from "./.dusky/http.dusky.ts";
 
 const server = new Server({ port: 8000, verbose: true }, requestHandler);
 

@@ -1,56 +1,57 @@
-import { createStreaming } from "https://deno.land/x/dprint@0.2.0/mod.ts";
-import { chalk } from "../chalk.ts";
-import { fs, path, pathPosix } from "../deps.ts";
-import { UrlMatcher, urlToMatcher } from "../utils.ts";
+import { chalk } from "../../chalk.ts";
+import { fs, path, pathPosix } from "../../deps.ts";
+import { UrlMatcher, urlToMatcher } from "../../utils.ts";
+import { format } from "../formatter.ts";
 import { RouteFile } from "./RouteFile.ts";
 import { RouteImport } from "./RouteImport.ts";
 const pathMod = path;
 
-// Setup Formatter
-const tsFormatter = await createStreaming(
-  fetch("https://plugins.dprint.dev/typescript-0.74.0.wasm")
-);
-tsFormatter.setConfig(
-  { indentWidth: 2, lineWidth: 80 },
-  { semiColons: "always", quoteStyle: "preferDouble", quoteProps: "asNeeded" }
-);
+export abstract class RoutesTree<
+  FILE extends RouteFile = RouteFile,
+> {
+  /**
+   * It's needed to circular type reference
+   * This style is like rust with types inside
+   * of traits (see @link https://doc.rust-lang.org/book/ch19-03-advanced-traits.html)
+   * @internal
+   */
+  _TREE!: RoutesTree;
 
-export class RoutesTree {
-  #parent: RoutesTree | null = null;
-  children = new Set<RoutesTree>();
-  fallback: RoutesTree | null = null;
-  middleware: RoutesTree | null = null;
+  #parent: typeof this["_TREE"] | null = null;
+  children = new Set<(typeof this["_TREE"])>();
+  fallback: (typeof this["_TREE"]) | null = null;
+  middleware: (typeof this["_TREE"]) | null = null;
 
   readonly dirname: string;
   readonly relativePath: string;
 
   readonly matcher: UrlMatcher;
 
-  middlewares: RoutesTree[] = [];
+  middlewares: (typeof this["_TREE"])[] = [];
   readonly isMiddleware: boolean;
 
   constructor(
-    readonly path: string,
+    readonly urlPath: string,
     readonly filePath: string,
-    public routeFile: RouteFile | null,
-    readonly isRoot: boolean = false
+    public routeFile: FILE | null,
+    readonly isRoot: boolean = false,
   ) {
     this.dirname = pathMod.dirname(filePath);
     this.relativePath = pathMod.relative(Deno.cwd(), filePath);
 
-    path = path.trim();
+    urlPath = urlPath.trim();
 
     // Normalize to have slash at the beginning
-    if (!pathPosix.isAbsolute(path)) {
-      path = "/" + path;
+    if (!pathPosix.isAbsolute(urlPath)) {
+      urlPath = "/" + urlPath;
     }
 
-    this.path = path;
-    this.isMiddleware = this.path.endsWith("_middleware");
-    this.matcher = urlToMatcher(this.path);
+    this.urlPath = urlPath;
+    this.isMiddleware = this.urlPath.endsWith("_middleware");
+    this.matcher = urlToMatcher(this.urlPath);
   }
 
-  get parent(): RoutesTree | null {
+  get parent(): (typeof this["_TREE"]) | null {
     return this.#parent;
   }
 
@@ -63,10 +64,10 @@ export class RoutesTree {
   private calculateMiddlewares() {
     this.middlewares = [];
 
-    const stack: RoutesTree[] = [];
+    const stack: (typeof this["_TREE"])[] = [];
     // Needs as current node
     // deno-lint-ignore no-this-alias
-    let current: RoutesTree | null = this;
+    let current: (typeof this["_TREE"]) | null = this;
 
     do {
       if (current.middleware) {
@@ -77,13 +78,18 @@ export class RoutesTree {
     this.middlewares = stack.reverse();
   }
 
-  addChild(route: RoutesTree) {
-    if (route.path.endsWith("_fallback")) {
+  abstract handleConvention(name: string, route: typeof this): boolean;
+
+  addChild(route: typeof this) {
+    if (route.urlPath.endsWith("_fallback")) {
       this.fallback = route;
-    } else if (route.path.endsWith("_middleware")) {
+    } else if (route.urlPath.endsWith("_middleware")) {
       this.middleware = route;
       this.calculateMiddlewares();
     } else {
+      const match = route.urlPath.match(/_(.+)/);
+      if (match && this.handleConvention(match[1], route)) return;
+
       this.children.add(route);
     }
 
@@ -97,25 +103,27 @@ export class RoutesTree {
 
     const childrenImports = Array.from(this.children)
       .map((child, i) => {
-        return `import $child$${i} from "./${path.relative(
-          this.dirname,
-          child.filePath
-        )}"`;
+        return `import $child$${i} from "./${
+          path.relative(
+            this.dirname,
+            child.filePath,
+          )
+        }"`;
       })
       .join(";\n");
 
     // Omit if it's middleware
-    const middlewareImports = this.isMiddleware
-      ? ""
-      : this.middlewares
-          .map(
-            (mid, i) =>
-              `import $middle$${i} from "./${path.relative(
-                this.dirname,
-                mid.filePath
-              )}"`
-          )
-          .join(";\n");
+    const middlewareImports = this.isMiddleware ? "" : this.middlewares
+      .map(
+        (mid, i) =>
+          `import $middle$${i} from "./${
+            path.relative(
+              this.dirname,
+              mid.filePath,
+            )
+          }"`,
+      )
+      .join(";\n");
 
     return `import * as $Dusky$ from "dusky";
 ${childrenImports};
@@ -127,7 +135,7 @@ ${middlewareImports}`;
 
     const map = new Map<string, RouteImport>();
 
-    this.routeFile.imports.forEach(([im, path]) => {
+    this.routeFile.topImport.forEach(([im, path]) => {
       const def = RouteImport.getDefOf(im);
 
       const routeImport = map.get(path) ?? new RouteImport(path);
@@ -146,40 +154,21 @@ ${middlewareImports}`;
   generateMiddlewares() {
     return !this.isMiddleware
       ? this.middlewares
-          .map(
-            (_, i) =>
-              `const $mid$${i} = await $middle$${i}(req); if ($mid$${i}) return $mid$${i};`
-          )
-          .join("\n")
+        .map(
+          (_, i) =>
+            `const $mid$${i} = await $middle$${i}(req); if ($mid$${i}) return $mid$${i};`,
+        )
+        .join("\n")
       : "";
   }
 
-  generateBodyContent() {
-    const hasAny = this.routeFile?.handlers?.has("ANY") ?? false;
-    const middlewares = this.generateMiddlewares();
-
-    return this.routeFile
-      ? Array.from(this.routeFile.handlers.entries())
-          .map(([method, handl]) => {
-            return method !== "ANY"
-              ? `if (req.method === "${method}") {
-    ${middlewares}
-    ${handl.body}
-  }`
-              : middlewares + handl.body;
-          })
-          .join("\n") +
-          (!hasAny && !this.isMiddleware
-            ? "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
-            : "")
-      : "";
-  }
+  abstract generateBodyContent(): string;
 
   generateHandler() {
     const childCalls = Array.from(this.children)
       .map(
         (_, i) =>
-          `const out$${i} = await $child$${i}(req); if (out$${i}) return out$${i}`
+          `const out$${i} = await $child$${i}(req); if (out$${i}) return out$${i}`,
       )
       .join(";\n");
 
@@ -197,7 +186,7 @@ ${middlewareImports}`;
   buildFile(): string {
     const imports = this.generateImports();
     const routeImports = this.getRouteIdentImports();
-    let body = this.generateHandler();
+    let body = this.generateMiddlewares() + this.generateHandler();
 
     const routeImportsStr: string[] = [];
 
@@ -209,7 +198,7 @@ ${middlewareImports}`;
     });
 
     if (this.fallback) {
-      body += this.generateMiddlewares() + this.fallback.generateBodyContent();
+      body += this.fallback.generateBodyContent();
 
       this.fallback.getRouteIdentImports().forEach((routeImport) => {
         routeImport.filterUnused(body);
@@ -244,7 +233,7 @@ export default handler;
 
     // console.log(content);
 
-    return tsFormatter.formatText(this.filePath, content);
+    return format(this.filePath, content);
   }
 
   async writeFile() {
@@ -261,7 +250,7 @@ export default handler;
           console.log(chalk.red("[Error] Error at", ch.relativePath));
           return e;
         })
-      )
+      ),
     );
   }
 }

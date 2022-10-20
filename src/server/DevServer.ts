@@ -43,14 +43,14 @@ export class DevServer extends BaseServer {
     return (
       // Handle ROUTE.ts
       (await handleFile(rawRoute + ".ts")) ??
-      // Handle ROUTE/index.ts
-      (await handleFile(pathPosix.join(rawRoute, "index.ts"))) ??
-      // Handle ROUTE/_fallback.ts
-      (await handleFile(pathPosix.join(rawRoute, "_fallback.ts"))) ??
-      // Handle _fallback.ts
-      (await handleFile(
-        pathPosix.join(pathPosix.dirname(rawRoute), "_fallback.ts")
-      ))
+        // Handle ROUTE/index.ts
+        (await handleFile(pathPosix.join(rawRoute, "index.ts"))) ??
+        // Handle ROUTE/_fallback.ts
+        (await handleFile(pathPosix.join(rawRoute, "_fallback.ts"))) ??
+        // Handle _fallback.ts
+        (await handleFile(
+          pathPosix.join(pathPosix.dirname(rawRoute), "_fallback.ts"),
+        ))
     );
   }
 
@@ -77,7 +77,7 @@ export class DevServer extends BaseServer {
     if (typeof controllerMod["default"] !== "function") {
       return new HTTPError(
         StatusCode.INTERNAL_ERR,
-        "Not default export or it isn't a class"
+        "Not default export or it isn't a class",
       )
         .withName("ExportError")
         .toResponse();

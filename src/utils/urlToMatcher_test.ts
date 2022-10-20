@@ -1,4 +1,4 @@
-import { getUrlMatcherParts, urlToMatcher } from "./urlToMatcher.ts";
+import { urlToMatcher } from "./urlToMatcher.ts";
 import { bdd } from "../test_deps.ts";
 const expect = chai.expect;
 
@@ -8,7 +8,14 @@ bdd.describe("urlToMatcher", () => {
 
     expect(matcher)
       .to.be.an("object")
-      .with.keys("exact", "start", "exactDecl", "startDecl", "prepareDecl");
+      .with.keys(
+        "exact",
+        "start",
+        "exactDecl",
+        "startDecl",
+        "prepareDecl",
+        "serialDecl",
+      );
     expect(matcher.exact("/my/path")).to.be.true;
     expect(matcher.exact("/my/path/deep")).to.be.false;
     expect(matcher.exact("/my/pat")).to.be.false;
@@ -16,22 +23,21 @@ bdd.describe("urlToMatcher", () => {
     expect(matcher.start("/my/path/deep")).to.be.true;
     expect(matcher.start("/my/path")).to.be.true;
 
-    expect(matcher.exactDecl("target")).to.be.equal("target === '/my/path'");
-    expect(matcher.startDecl("target")).to.be.equal(
-      "target.startsWith('/my/path')"
+    expect(matcher.exactDecl("target")).to.be.equal(
+      "urlMatcherPrepare_target === '/my/path'",
     );
-    expect(matcher.prepareDecl("target", "val")).to.be.empty;
+    expect(matcher.startDecl("target")).to.be.equal(
+      "urlMatcherPrepare_target.startsWith('/my/path')",
+    );
+    expect(matcher.prepareDecl("target", "req")).to.be.equal(
+      "const urlMatcherPrepare_target = req.pathname;",
+    );
   });
 
   bdd.it("With one var", () => {
     const url = "/my/[myVar]";
     const matcher = urlToMatcher(url);
-    const parts = getUrlMatcherParts(url);
-    const partsSerialized = JSON.stringify(parts);
 
-    expect(matcher)
-      .to.be.an("object")
-      .with.keys("exact", "start", "exactDecl", "startDecl", "prepareDecl");
     expect(matcher.exact("/my/path")).to.be.true;
     expect(matcher.exact("/my/pat")).to.be.true;
     expect(matcher.exact("/my/path/deep")).to.be.false;
@@ -41,7 +47,7 @@ bdd.describe("urlToMatcher", () => {
 
     expect(matcher.exactDecl("target")).to.be.equal(`(() => {
           const t = urlMatcherPrepare_target;
-          const p = ${partsSerialized};
+          const p = urlMatcherSerial_target;
 
           if (t.length !== p.length) return false;
           return t.every((tp,i) => {
@@ -53,7 +59,7 @@ bdd.describe("urlToMatcher", () => {
         })()`);
     expect(matcher.startDecl("target")).to.be.equal(`(() => {
           const t = urlMatcherPrepare_target;
-          const p = ${partsSerialized};
+          const p = urlMatcherSerial_target;
 
           if (t.length < p.length) return false;
           return p.every((tp,i) => {
@@ -63,16 +69,7 @@ bdd.describe("urlToMatcher", () => {
             return false;
           });
         })()`);
-    expect(matcher.prepareDecl("target", "val")).to.be
-      .equal(`const urlMatcherPrepare_target=((target)=>{
-          const t = target.split("/");
-          t.shift();
-          l: {
-            const la = t.pop();
-            if (la === undefined || la.length === 0) break l;
-            t.push(last);
-          }
-          return t;
-        })(val)`);
+    expect(matcher.prepareDecl("target", "req")).to.be
+      .equal(`const urlMatcherPrepare_target=req.byParts;`);
   });
 });

@@ -44,7 +44,7 @@ export class HTTPError {
 
   static fromError(
     error: Error,
-    statusCode: number | StatusCode = StatusCode.INTERNAL_ERR
+    statusCode: number | StatusCode = StatusCode.INTERNAL_ERR,
   ): HTTPError {
     return new HTTPError(statusCode, error.message)
       .withName(error.name)
