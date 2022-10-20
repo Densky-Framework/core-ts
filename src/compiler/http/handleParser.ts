@@ -4,7 +4,7 @@ import { HTTPMethodStr } from "../../common.ts";
 
 /** @internal */
 export const errors = {
-  EMPTY: "The file is empty or very short {dim (less than 10 characters)}",
+  EMPTY: chalk`The file is empty or very short {dim (less than 10 characters)}`,
   BAD_EXPORT: `The file isn't export correct class.
 The class must be exported as default and will contains the implement of 'IController'`,
   BAD_CODE: "Bad Code. Braces can't be parsed",
@@ -12,7 +12,7 @@ The class must be exported as default and will contains the implement of 'IContr
 
 /** @internal */
 export function makeError(relPath: string, error: string): Error {
-  return new Error(chalk(`{dim [${relPath}]}` + error));
+  return new Error(chalk.dim(`[${relPath}]`) + error);
 }
 
 export function handleParser(
@@ -38,9 +38,9 @@ export function handleParser(
 
   const methodRegex_ = "GET|POST|DELETE|PATH|ANY";
   const methodRegex = new RegExp(methodRegex_);
-  // METHOD(REQPARAM: HTTPRequest): RETURN_TYPE {
+  // METHOD(REQPARAM: TY): RETURN_TYPE {
   const handlerFnRegex = new RegExp(
-    `(${methodRegex_})\\s*\\(\\s*(?:([a-zA-Z0-9_]+):\\s*HTTPRequest\\s*)?\\)(?:\\s*:\\s*[^{]+\\s*)?\\s*{`,
+    `(${methodRegex_})\\s*\\(\\s*(?:([a-zA-Z0-9_]+):\\s*(?:\\w+)\\s*)?\\)(?:\\s*:\\s*[^{]+\\s*)?\\s*{`,
   );
 
   const nextHandler = (remain: string) => {

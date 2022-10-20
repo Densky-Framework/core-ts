@@ -1,7 +1,7 @@
 import { chalk } from "../../deps.ts";
-import { RoutesTree } from "../shared/RoutesTree.ts";
+import { HttpRoutesTree } from "../http/HttpRoutesTree.ts";
 
-export function graphToTerminal(route: RoutesTree, prefix = ""): void {
+export function graphToTerminal(route: HttpRoutesTree, prefix = ""): void {
   let out = prefix;
 
   out += route.urlPath === "/"

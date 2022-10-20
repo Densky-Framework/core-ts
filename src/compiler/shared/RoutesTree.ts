@@ -2,28 +2,38 @@ import { chalk } from "../../chalk.ts";
 import { fs, path, pathPosix } from "../../deps.ts";
 import { UrlMatcher, urlToMatcher } from "../../utils.ts";
 import { format } from "../formatter.ts";
-import { HttpRouteFile } from "../http/HttpRouteFile.ts";
+import { RouteFile } from "./RouteFile.ts";
 import { RouteImport } from "./RouteImport.ts";
 const pathMod = path;
 
-export abstract class RoutesTree {
-  #parent: RoutesTree | null = null;
-  children = new Set<RoutesTree>();
-  fallback: RoutesTree | null = null;
-  middleware: RoutesTree | null = null;
+export abstract class RoutesTree<
+  FILE extends RouteFile = RouteFile,
+> {
+  /**
+   * It's needed to circular type reference
+   * This style is like rust with types inside
+   * of traits (see @link https://doc.rust-lang.org/book/ch19-03-advanced-traits.html)
+   * @internal
+   */
+  _TREE!: RoutesTree;
+
+  #parent: typeof this["_TREE"] | null = null;
+  children = new Set<(typeof this["_TREE"])>();
+  fallback: (typeof this["_TREE"]) | null = null;
+  middleware: (typeof this["_TREE"]) | null = null;
 
   readonly dirname: string;
   readonly relativePath: string;
 
   readonly matcher: UrlMatcher;
 
-  middlewares: RoutesTree[] = [];
+  middlewares: (typeof this["_TREE"])[] = [];
   readonly isMiddleware: boolean;
 
   constructor(
     readonly urlPath: string,
     readonly filePath: string,
-    public routeFile: HttpRouteFile | null,
+    public routeFile: FILE | null,
     readonly isRoot: boolean = false,
   ) {
     this.dirname = pathMod.dirname(filePath);
@@ -41,7 +51,7 @@ export abstract class RoutesTree {
     this.matcher = urlToMatcher(this.urlPath);
   }
 
-  get parent(): RoutesTree | null {
+  get parent(): (typeof this["_TREE"]) | null {
     return this.#parent;
   }
 
@@ -54,10 +64,10 @@ export abstract class RoutesTree {
   private calculateMiddlewares() {
     this.middlewares = [];
 
-    const stack: RoutesTree[] = [];
+    const stack: (typeof this["_TREE"])[] = [];
     // Needs as current node
     // deno-lint-ignore no-this-alias
-    let current: RoutesTree | null = this;
+    let current: (typeof this["_TREE"]) | null = this;
 
     do {
       if (current.middleware) {
@@ -152,26 +162,7 @@ ${middlewareImports}`;
       : "";
   }
 
-  generateBodyContent() {
-    const hasAny = this.routeFile?.handlers?.has("ANY") ?? false;
-    const middlewares = this.generateMiddlewares();
-
-    return this.routeFile
-      ? Array.from(this.routeFile.handlers.entries())
-        .map(([method, handl]) => {
-          return method !== "ANY"
-            ? `if (req.method === "${method}") {
-    ${middlewares}
-    ${handl.body}
-  }`
-            : middlewares + handl.body;
-        })
-        .join("\n") +
-        (!hasAny && !this.isMiddleware
-          ? "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
-          : "")
-      : "";
-  }
+  abstract generateBodyContent(): string;
 
   generateHandler() {
     const childCalls = Array.from(this.children)
@@ -195,7 +186,7 @@ ${middlewareImports}`;
   buildFile(): string {
     const imports = this.generateImports();
     const routeImports = this.getRouteIdentImports();
-    let body = this.generateHandler();
+    let body = this.generateMiddlewares() + this.generateHandler();
 
     const routeImportsStr: string[] = [];
 
@@ -207,7 +198,7 @@ ${middlewareImports}`;
     });
 
     if (this.fallback) {
-      body += this.generateMiddlewares() + this.fallback.generateBodyContent();
+      body += this.fallback.generateBodyContent();
 
       this.fallback.getRouteIdentImports().forEach((routeImport) => {
         routeImport.filterUnused(body);

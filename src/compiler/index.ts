@@ -81,7 +81,7 @@ export async function compile(options: CompileOptions) {
     null,
     true,
   );
-  const fileTrees = new Map<string, RoutesTree>();
+  const fileTrees = new Map<string, HttpRoutesTree>();
 
   const fileEntries = Array.from(files.entries()).sort(([a, _], [b, __]) =>
     a.endsWith("_index")
@@ -95,7 +95,7 @@ export async function compile(options: CompileOptions) {
       : a.split("/").length - b.split("/").length
   );
 
-  const putFileRecursive = (path: string, tree: RoutesTree) => {
+  const putFileRecursive = (path: string, tree: HttpRoutesTree) => {
     const fatherRoute = pathMod.dirname(path);
     const fatherRouteTree = fileTrees.get(fatherRoute);
 
