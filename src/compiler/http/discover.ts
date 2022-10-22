@@ -1,10 +1,8 @@
-import { chalk, fs, path, path as pathMod } from "../../deps.ts";
-import { toResponseFnDecl } from "../../utils.ts";
+import { fs, path as pathMod } from "../../deps.ts";
 import { HttpRouteFile } from "./HttpRouteFile.ts";
 import { HttpRoutesTree } from "./HttpRoutesTree.ts";
 import {
   log_error,
-  log_success,
   log_warn,
   makeLog_info,
   makeLog_success_v,
