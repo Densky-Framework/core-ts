@@ -12,7 +12,7 @@ bdd.describe("Compiler/Ws - handleParser", () => {
 import {} from "import/path"
 import {WsRequest, WsContext} from "dusky"
 
-export default function handleWS(ctx: WsContext, req: WsRequest): void {
+export default function handleWS(ctxParam: WsContext, reqParam: WsRequest): void {
   // More lines :D
   console.log(ctx, req);
 
@@ -32,8 +32,8 @@ export default function handleWS(ctx: WsContext, req: WsRequest): void {
 
   req.send(req.path, "Echo: " + req.data);
 `);
-    expect(handler.ctxParam).to.be.equal("ctx");
-    expect(handler.reqParam).to.be.equal("req");
+    expect(handler.ctxParam).to.be.equal("ctxParam");
+    expect(handler.reqParam).to.be.equal("reqParam");
   });
 
   bdd.it("Test 2", () => {
@@ -42,7 +42,7 @@ export default function handleWS(ctx: WsContext, req: WsRequest): void {
 import {} from "import/path"
 import {WsRequest, WsContext} from "dusky"
 
-export default function handleWS(ctx: WsContext): void {
+export default function handleWS(ctxParam: WsContext): void {
 }
 `,
       path,
@@ -50,7 +50,7 @@ export default function handleWS(ctx: WsContext): void {
 
     expect(handler.body).to.be.equal(`
 `);
-    expect(handler.ctxParam).to.be.equal("ctx");
+    expect(handler.ctxParam).to.be.equal("ctxParam");
     expect(handler.reqParam).to.be.undefined;
   });
 

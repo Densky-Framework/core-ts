@@ -23,7 +23,7 @@ export function handleParser(
 ): WsRouteHandler {
   const relPath = pathMod.relative(Deno.cwd(), filePath);
 
-  const idx = content.search(/export\s+default\s+/m);
+  const idx = content.search(/export\s+default\s+/);
 
   if (idx === -1) {
     throw makeError(relPath, errors.NO_DEFAULT);
