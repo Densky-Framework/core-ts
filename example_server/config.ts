@@ -5,5 +5,6 @@ export const outdirPath = import.meta.resolve("./.dusky");
 
 export const compileOptions: CompileOptions = {
   routesPath: "src/routes",
+  wsPath: "src/ws",
   verbose: true,
 };
