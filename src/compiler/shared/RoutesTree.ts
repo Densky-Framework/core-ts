@@ -87,7 +87,7 @@ export abstract class RoutesTree<
       this.middleware = route;
       this.calculateMiddlewares();
     } else {
-      const match = route.urlPath.match(/_(.+)/);
+      const match = route.urlPath.match(/_(.+)$/);
       if (match && this.handleConvention(match[1], route)) return;
 
       this.children.add(route);
