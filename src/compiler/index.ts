@@ -1,5 +1,5 @@
 import { chalk, path } from "../deps.ts";
-import { graphToTerminal } from "./grapher/terminal.ts";
+import { graphHttpToTerminal, graphWsToTerminal } from "./grapher/terminal.ts";
 import {
   log_error,
   log_success,
@@ -10,6 +10,9 @@ import {
 import { CompileOptions } from "./types.ts";
 import { httpDiscover } from "./http/discover.ts";
 import { httpWrite } from "./http/write.ts";
+import { wsDiscover } from "./ws/discover.ts";
+
+export type { CompileOptions };
 
 let log_info: MakeLogFn;
 let log_success_v: MakeLogFn;
@@ -20,8 +23,10 @@ export async function compile(options: CompileOptions) {
   if (!(await request_permisions(opts))) return;
 
   const httpRoutesTree = await httpDiscover(opts);
+  const wsRoutesTree = await wsDiscover(opts);
 
   if (!httpRoutesTree) return;
+  if (opts.wsPath && !wsRoutesTree) return;
 
   log_info("Writing files");
 
@@ -36,9 +41,15 @@ export async function compile(options: CompileOptions) {
   await httpWrite(httpRoutesTree, opts);
 
   // Show route graph
-  console.log("Route structure:");
-  graphToTerminal(httpRoutesTree);
+  console.log("Http route structure:");
+  graphHttpToTerminal(httpRoutesTree);
   console.log("");
+
+  if (wsRoutesTree) {
+    console.log("WebSocket route structure:");
+    graphWsToTerminal(wsRoutesTree);
+    console.log("");
+  }
 
   // Legend
   console.log(chalk.gray`★ Root Endpoint (Leaf)`);
@@ -70,6 +81,7 @@ function normalize_options(options: CompileOptions): Required<CompileOptions> {
 
   log_info(chalk`Options: 
   RoutesPath: {green "${opts.routesPath}"}
+  WsPath: {green ${opts.wsPath ? '"' + opts.wsPath + '"' : "false"}}
   OutDir: {green "${opts.outDir}"}
   Verbose: {yellow ${opts.verbose}}`);
 
