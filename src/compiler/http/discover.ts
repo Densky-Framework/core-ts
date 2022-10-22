@@ -19,7 +19,7 @@ export async function httpDiscover(
   const log_success_v = makeLog_success_v(opts.verbose);
   const outDir = pathMod.join(opts.outDir, "http");
 
-  log_info("Scanning files");
+  log_info("Scanning http files");
   const files = new Map<string, HttpRouteFile>();
 
   const glob = fs.expandGlob("**/*.ts", {
@@ -56,7 +56,7 @@ export async function httpDiscover(
 
   const fileRoutesTree = new HttpRoutesTree(
     "/",
-    pathMod.join(opts.outDir, "http", "index.ts"),
+    pathMod.join(outDir, "index.ts"),
     null,
     true,
   );
