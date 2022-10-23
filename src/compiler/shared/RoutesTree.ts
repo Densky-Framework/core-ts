@@ -57,8 +57,6 @@ export abstract class RoutesTree<
 
   set parent(parent) {
     this.#parent = parent;
-
-    this.calculateMiddlewares();
   }
 
   calculateMiddlewares() {
@@ -85,7 +83,6 @@ export abstract class RoutesTree<
       this.fallback = route;
     } else if (route.urlPath.endsWith("_middleware")) {
       this.middleware = route;
-      this.calculateMiddlewares();
     } else {
       const match = route.urlPath.match(/_(.+)$/);
       if (match && this.handleConvention(match[1], route)) return;
@@ -101,6 +98,10 @@ export abstract class RoutesTree<
   abstract getParams(): string;
   abstract getReturnType(): string;
   abstract getRequestVariable(): string;
+
+  protected generatePrepareRequest(): string {
+    return `await ${this.getRequestVariable()}.prepare();`
+  }
 
   generateImports(): string {
     if (this.routeFile) this.routeFile.outPath = this.filePath;
@@ -160,7 +161,7 @@ ${middlewareImports}`;
       ? this.middlewares
         .map(
           (_, i) =>
-            `const $mid$${i} = await $middle$${i}(req); if ($mid$${i}) return $mid$${i};`,
+            `const $mid$${i} = await $middle$${i}(${this.getRequestVariable()}); if ($mid$${i}) return $mid$${i};`,
         )
         .join("\n")
       : "";
@@ -172,7 +173,7 @@ ${middlewareImports}`;
     const childCalls = Array.from(this.children)
       .map(
         (_, i) =>
-          `const out$${i} = await $child$${i}(req); if (out$${i}) return out$${i}`,
+          `const out$${i} = await $child$${i}(${this.getRequestVariable()}); if (out$${i}) return out$${i}`,
       )
       .join(";\n");
 
@@ -188,9 +189,10 @@ ${middlewareImports}`;
   }
 
   buildFile(): string {
+    this.calculateMiddlewares();
     const imports = this.generateImports();
     const routeImports = this.getRouteIdentImports();
-    let body = this.generateMiddlewares() + this.generateHandler();
+    let body = this.generateHandler();
 
     const routeImportsStr: string[] = [];
 
