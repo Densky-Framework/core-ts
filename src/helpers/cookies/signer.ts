@@ -59,7 +59,7 @@ export async function getDecodedCookies(
     try {
       // The signed cookie is always in base64 and
       // has the next format: VALUE.SIGNATURE
-      const [value, signature] = decoder.decode(decode64(cookie)).split(".", 1);
+      const [value, signature] = decoder.decode(decode64(cookie.slice(2))).split(".", 1);
       const verified = await verify(signature, decodeURI(value));
 
       if (verified) {

@@ -43,7 +43,7 @@ export class Cookies {
         }
       }
 
-      case "s:":
+      case "t:":
         return data as unknown as T;
 
       case "n:": {
@@ -87,7 +87,7 @@ export class Cookies {
         break;
 
       default:
-        cookieValue = `s:${value}`;
+        cookieValue = `t:${value}`;
         break;
     }
 
