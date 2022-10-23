@@ -9,6 +9,7 @@ export class HTTPRequest {
 
   readonly url: URL;
   readonly pathname: string;
+  readonly params = new Map<string, string>;
 
   /** @internal */
   readonly byParts: string[];
