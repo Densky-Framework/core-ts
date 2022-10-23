@@ -2,8 +2,8 @@ import { Promisable } from "../common.ts";
 import { HTTPPossibleResponse, HTTPRequest } from "../http/index.ts";
 
 export type Endpoint = (
-    req: HTTPRequest
-  ) => Promisable<HTTPPossibleResponse>
+  req: HTTPRequest,
+) => Promisable<HTTPPossibleResponse>;
 
 export interface IController {
   GET?: Endpoint;

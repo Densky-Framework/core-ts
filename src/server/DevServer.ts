@@ -1,75 +1,78 @@
 import { StatusCode } from "../common.ts";
-import { path, pathPosix } from "../deps.ts";
 import { HTTPError, HTTPRequest } from "../http/index.ts";
 import { IController } from "../router/Controller.ts";
 import { BaseServer, BaseServerOptions } from "./BaseServer.ts";
 import { toResponse } from "../utils.ts";
+import { HttpRoutesTree } from "../compiler/http/HttpRoutesTree.ts";
+import { httpDiscover } from "../compiler/http/discover.ts";
+import { graphHttpToTerminal } from "../compiler/grapher/terminal.ts";
 
 export class DevServer extends BaseServer {
+  routesTree!: HttpRoutesTree;
+  controllersCache = new Map<string, IController>();
+
   constructor(options: BaseServerOptions, readonly routesPath: string) {
     super(options);
-    routesPath = new URL(routesPath).pathname;
   }
 
-  protected resolveRawRoute(route: string): string {
-    route = route.trim();
+  override async start(): Promise<void> {
+    const tmpDir = await Deno.makeTempDir({ prefix: "densky-cache" });
+    const routesTree = await httpDiscover({
+      routesPath: this.routesPath,
+      wsPath: "",
+      outDir: tmpDir,
+      verbose: false,
+    }, false);
 
-    if (pathPosix.isAbsolute(route)) {
-      route = route.slice(1).trim();
+    if (!routesTree) throw new Error("Can't generate the routes tree");
+    this.routesTree = routesTree;
+
+    console.log("Routes Tree:");
+    graphHttpToTerminal(routesTree);
+
+    await super.start();
+  }
+
+  async runMethod(
+    controller: IController,
+    method: keyof IController,
+    httpRequest: HTTPRequest,
+  ): Promise<Response | null> {
+    try {
+      const response = await controller[method]!(httpRequest);
+      if (response) {
+        return toResponse(httpRequest, response);
+      } else return null;
+    } catch (e) {
+      return HTTPError.fromError(e as Error).toResponse();
     }
-
-    if (route === "") {
-      route = "index";
-    }
-
-    return path.join(this.routesPath, route);
   }
 
-  protected async resolveRoute(route: string): Promise<string | null> {
-    const rawRoute = this.resolveRawRoute(route);
-
-    const handleFile = async (filePath: string) => {
-      // If can open it and it's a file, then return the file path,
-      // else return null
-      try {
-        return (await (await Deno.open(filePath)).stat()).isFile
-          ? filePath
-          : null;
-      } catch (_) {
-        return null;
-      }
-    };
-
-    return (
-      // Handle ROUTE.ts
-      (await handleFile(rawRoute + ".ts")) ??
-      // Handle ROUTE/index.ts
-      (await handleFile(pathPosix.join(rawRoute, "index.ts"))) ??
-      // Handle ROUTE/_fallback.ts
-      (await handleFile(pathPosix.join(rawRoute, "_fallback.ts"))) ??
-      // Handle _fallback.ts
-      (await handleFile(
-        pathPosix.join(pathPosix.dirname(rawRoute), "_fallback.ts")
-      ))
-    );
-  }
-
-  async handleRequest(request: Deno.RequestEvent): Promise<Response> {
-    const url = new URL(request.request.url);
-    const controllerUrl = await this.resolveRoute(url.pathname);
+  /**
+   * Resolve controllers and use cache
+   */
+  protected async getController(
+    controllerTree: HttpRoutesTree | null,
+  ): Promise<IController | Response> {
+    const controllerUrl = controllerTree && controllerTree.routeFile?.filePath;
 
     // There isn't a controller for given path
     if (!controllerUrl) {
-      return new HTTPError(StatusCode.NOT_FOUND)
-        .withDetails({ code: "ENOTFOUND" })
-        .toResponse();
+      return new HTTPError(StatusCode.NOT_FOUND).toResponse();
     }
 
     // Try to import and handle import errors
     let controllerMod;
 
     try {
-      controllerMod = await import(controllerUrl);
+      if (this.controllersCache.has(controllerUrl)) {
+        controllerMod = this.controllersCache.get(controllerUrl);
+      } else {
+        // If it isn't cached, then recalculate middlewares for
+        // prevent bugs in discover
+        controllerTree.calculateMiddlewares();
+        controllerMod = await import(controllerUrl);
+      }
     } catch (e) {
       return HTTPError.fromError(e as Error).toResponse();
     }
@@ -77,26 +80,71 @@ export class DevServer extends BaseServer {
     if (typeof controllerMod["default"] !== "function") {
       return new HTTPError(
         StatusCode.INTERNAL_ERR,
-        "Not default export or it isn't a class"
+        "Not default export or it isn't a class",
       )
         .withName("ExportError")
+        .withDetails({ note: "This file will be ignored at build time" })
         .toResponse();
     }
 
-    const controller: IController = new controllerMod["default"]();
-    const method = request.request.method as keyof IController;
+    this.controllersCache.set(controllerUrl, controllerMod);
 
-    if (method in controller && typeof controller[method] === "function") {
-      try {
-        const response = await controller[method]!(new HTTPRequest(request));
-        return toResponse(response);
-      } catch (e) {
-        return HTTPError.fromError(e as Error).toResponse();
-      }
+    const controller: IController = new controllerMod["default"]();
+
+    return controller;
+  }
+
+  /**
+   * MainHandler
+   *
+   * Get raw event, resolve controllers and middlewares, and run methods
+   */
+  async handleRequest(request: Deno.RequestEvent): Promise<Response> {
+    const httpRequest = new HTTPRequest(request);
+    const controllerTree = this.routesTree.handleRoute(
+      httpRequest.pathname,
+      httpRequest.params,
+    );
+    let controller: IController;
+
+    {
+      const _ = await this.getController(controllerTree);
+
+      if (_ instanceof Response) return _;
+
+      controller = _;
     }
 
-    if ("ANY" in controller) {
-      return new Response("Teapot ANY");
+    const method = httpRequest.method as keyof IController;
+
+    const runMethod = async (method: keyof IController): Promise<Response> => {
+      await httpRequest.prepare();
+      const middlewares = controllerTree!.middlewares;
+
+      for (const middlewareTree of middlewares) {
+        // Get middleware controller
+        let middleware: IController;
+        {
+          const _ = await this.getController(middlewareTree);
+          if (_ instanceof Response) return _;
+          middleware = _;
+        }
+
+        // Run and if return something, then it will be the response
+        const res = await this.runMethod(middleware, method, httpRequest);
+
+        if (res) return res;
+      }
+
+      return (await this.runMethod(controller, method, httpRequest))!;
+    };
+
+    if (method in controller && typeof controller[method] === "function") {
+      return await runMethod(method);
+    }
+
+    if ("ANY" in controller && typeof controller.ANY === "function") {
+      return await runMethod("ANY");
     }
 
     return new HTTPError(StatusCode.NOT_METHOD).toResponse();

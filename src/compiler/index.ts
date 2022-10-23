@@ -1,200 +1,34 @@
-import { ChalkInstance } from "https://deno.land/x/chalk_deno@v4.1.1-deno/index.d.ts";
-import { chalk } from "../chalk.ts";
-import { fs, path as pathMod } from "../deps.ts";
-import { RouteFile } from "./RouteFile.ts";
-import { RoutesTree } from "./RoutesTree.ts";
-import { toResponseFnDecl } from "../utils.ts";
+import { chalk, fs, path } from "../deps.ts";
+import { graphHttpToTerminal, graphWsToTerminal } from "./grapher/terminal.ts";
+import {
+  log_error,
+  log_success,
+  makeLog_info,
+  makeLog_success_v,
+  MakeLogFn,
+} from "./logger.ts";
+import { CompileOptions } from "./types.ts";
+import { httpDiscover } from "./http/discover.ts";
+import { httpWrite } from "./http/write.ts";
+import { wsDiscover } from "./ws/discover.ts";
+import { wsWrite } from "./ws/write.ts";
+import { format } from "./formatter.ts";
 
-export type CompileOptions = {
-  routesPath: string;
-  outDir?: string;
-  verbose?: boolean;
-};
-
-const makeLog = (verbose: boolean, rawStr: string, color: ChalkInstance) => {
-  return verbose
-    ? (...data: unknown[]) =>
-        console.log(
-          color(rawStr),
-          ...data.map((v) =>
-            typeof v === "string"
-              ? v.replaceAll("\n", "\n" + " ".repeat(rawStr.length + 1))
-              : v
-          )
-        )
-    : (..._: unknown[]) => {};
-};
-
-type MakeLogFn = ReturnType<typeof makeLog>;
+export type { CompileOptions };
 
 let log_info: MakeLogFn;
 let log_success_v: MakeLogFn;
-const log_success: MakeLogFn = makeLog(true, "", chalk.green);
-const log_error: MakeLogFn = makeLog(true, "[ERROR]", chalk.red);
-const log_warn: MakeLogFn = makeLog(true, "[WARN]", chalk.yellow);
 
 export async function compile(options: CompileOptions) {
   const opts = normalize_options(options);
 
   if (!(await request_permisions(opts))) return;
 
-  log_info("Scanning files");
-  const files = new Map<string, RouteFile>();
+  const httpRoutesTree = await httpDiscover(opts);
+  const wsRoutesTree = await wsDiscover(opts);
 
-  const glob = fs.expandGlob("**/*.ts", {
-    root: opts.routesPath,
-    globstar: true,
-  });
-
-  for await (const file of glob) {
-    if (!file.isFile) return;
-
-    const relPath = pathMod.relative(opts.routesPath, file.path);
-
-    if (files.has(relPath)) {
-      log_error(`Strange file overlapping with ${file.path}`);
-      return;
-    }
-
-    const routeFile = new RouteFile(
-      file.path,
-      pathMod.join(opts.outDir, relPath)
-    );
-
-    try {
-      routeFile.setFileContent(await Deno.readTextFile(file.path));
-    } catch (e) {
-      log_warn("(Ignored) " + (e as Error).message);
-      continue;
-    }
-
-    files.set(relPath.slice(0, -3), routeFile);
-  }
-
-  log_success_v("Files count:", files.size);
-
-  const fileRoutesTree = new RoutesTree(
-    "/",
-    pathMod.join(opts.outDir, "index.ts"),
-    null,
-    true
-  );
-  const fileTrees = new Map<string, RoutesTree>();
-
-  const fileEntries = Array.from(files.entries()).sort(([a, _], [b, __]) =>
-    a.endsWith("_index")
-      ? -1
-      : b.endsWith("_index")
-      ? 1
-      : a.endsWith("]")
-      ? 1
-      : b.endsWith("]")
-      ? -1
-      : a.split("/").length - b.split("/").length
-  );
-
-  const putFileRecursive = (path: string, tree: RoutesTree) => {
-    const fatherRoute = pathMod.dirname(path);
-    const fatherRouteTree = fileTrees.get(fatherRoute);
-
-    if (fatherRouteTree) {
-      fatherRouteTree.addChild(tree);
-    } else {
-      const fatherRouteTree = new RoutesTree(
-        fatherRoute,
-        pathMod.join(opts.outDir, fatherRoute + ".ts"),
-        null
-      );
-      fatherRouteTree.addChild(tree);
-      fileTrees.set(fatherRoute, fatherRouteTree);
-      putFileRecursive(fatherRoute, fatherRouteTree);
-    }
-
-    fileTrees.set(path, tree);
-  };
-
-  fileTrees.set("/", fileRoutesTree);
-
-  for (let [path, file] of fileEntries) {
-    if (path === "_index") {
-      fileRoutesTree.routeFile = file;
-      continue;
-    }
-
-    if (path.endsWith("_index")) {
-      path = pathMod.dirname(path);
-    }
-
-    const currentRouteTree = new RoutesTree(path, file.outPath, file);
-    putFileRecursive("/" + path, currentRouteTree);
-  }
-
-  // Show route graph
-
-  const showRouteGraph = (route: RoutesTree, prefix = "") => {
-    let out = prefix;
-
-    out +=
-      route.path === "/"
-        ? route.routeFile
-          ? "★ "
-          : "☆ "
-        : route.routeFile
-        ? "▲ "
-        : "△ ";
-    out +=
-      // Remove parent path prefix, except at index(/)
-      !route.parent || route.parent.path === "/"
-        ? route.path
-        : route.path.replace(route.parent.path, "");
-    out +=
-      route.routeFile && route.routeFile.handlers.size > 0
-        ? chalk.dim(
-            " (" + Array.from(route.routeFile.handlers.keys()).join(", ") + ")"
-          )
-        : "";
-
-    console.log(out);
-
-    if (route.middleware) {
-      console.log(
-        prefix + chalk.dim("|") + " ■",
-        chalk.gray("middleware"),
-        chalk.dim(
-          "(" +
-            Array.from(route.middleware.routeFile!.handlers.keys()).join(", ") +
-            ")"
-        )
-      );
-    }
-
-    for (const child of route.children) {
-      showRouteGraph(child, prefix + chalk.dim("| "));
-    }
-
-    if (route.fallback) {
-      console.log(
-        prefix + chalk.dim("|") + " ■",
-        chalk.gray("...fallback"),
-        chalk.dim(
-          "(" +
-            Array.from(route.fallback.routeFile!.handlers.keys()).join(", ") +
-            ")"
-        )
-      );
-    }
-  };
-
-  console.log("Route structure:");
-  showRouteGraph(fileRoutesTree);
-  console.log("");
-
-  // Legend
-  console.log(chalk.gray`★ Root Endpoint (Leaf)`);
-  console.log(chalk.gray`☆ Root Invisible (Branch)`);
-  console.log(chalk.gray`▲ Endpoint (Leaf)`);
-  console.log(chalk.gray`△ Invisible (Branch)`);
-  console.log(chalk.gray`■ Convention`);
+  if (!httpRoutesTree) return;
+  if (opts.wsPath && !wsRoutesTree) return;
 
   log_info("Writing files");
 
@@ -205,26 +39,55 @@ export async function compile(options: CompileOptions) {
   } catch (_) {
     void 0;
   }
-  await fileRoutesTree.writeFileIncremental();
+
+  // Write
+  await httpWrite(httpRoutesTree, opts);
+  if (wsRoutesTree) await wsWrite(wsRoutesTree, opts);
 
   {
-    // dusky.main.ts
-    const mainPath = pathMod.join(opts.outDir, "dusky.main.ts");
+    const hasWs = !!opts.wsPath;
+    const mainPath = path.join(opts.outDir, "main.ts");
     await fs.ensureFile(mainPath);
-    await Deno.writeTextFile(
-      mainPath,
-      `// THIS FILE WAS GENERATED BY DUSKY-BACKEND (By Apika Luca)
+    const content = `// THIS FILE WAS GENERATED BY DUSKY-BACKEND (By Apika Luca)
 import * as $Dusky$ from "dusky";
-import { StatusCode } from "dusky/common.ts";
-import mainHandler from "./index.ts";
+import httpHandler from "./http.main.ts";
+${hasWs ? "import wsHandler from './ws.main.ts'" : ""}
 
-${toResponseFnDecl()}
+export default async function requestHandler(request: Deno.RequestEvent, conn: Deno.Conn): Promise<Response> {
+  const req = new $Dusky$.HTTPRequest(request);
 
-export default async function requestHandler(req: Deno.RequestEvent, conn: Deno.Conn): Promise<Response> {
-  return toResponse(await mainHandler(new $Dusky$.HTTPRequest(req)) ?? new $Dusky$.HTTPError(StatusCode.NOT_FOUND));
-}`
-    );
+  ${
+      hasWs
+        ? `
+  const wsRes = await wsHandler(req);
+  if (wsRes) return wsRes;
+`
+        : ""
+    }
+
+  return await httpHandler(req);
+}`;
+
+    await Deno.writeTextFile(mainPath, format(mainPath, content));
   }
+
+  // Show route graph
+  console.log("Http route structure:");
+  graphHttpToTerminal(httpRoutesTree);
+  console.log("");
+
+  if (wsRoutesTree) {
+    console.log("WebSocket route structure:");
+    graphWsToTerminal(wsRoutesTree);
+    console.log("");
+  }
+
+  // Legend
+  console.log(chalk.gray`★ Root Endpoint (Leaf)`);
+  console.log(chalk.gray`☆ Root Invisible (Branch)`);
+  console.log(chalk.gray`▲ Endpoint (Leaf)`);
+  console.log(chalk.gray`△ Invisible (Branch)`);
+  console.log(chalk.gray`■ Convention`);
 
   log_success("Done");
 }
@@ -233,45 +96,49 @@ function normalize_options(options: CompileOptions): Required<CompileOptions> {
   const opts: Required<CompileOptions> = Object.assign(
     {
       routesPath: "",
-      outDir: "",
+      wsPath: false,
+      outDir: ".dusky",
       verbose: false,
     },
-    options
+    options,
   );
 
-  opts.routesPath = new URL(opts.routesPath).pathname;
-  opts.outDir = new URL(opts.outDir).pathname;
+  opts.routesPath = path.resolve(Deno.cwd(), opts.routesPath);
+  opts.outDir = path.resolve(Deno.cwd(), opts.outDir);
+  if (opts.wsPath) opts.wsPath = path.resolve(Deno.cwd(), opts.wsPath);
 
-  log_info = makeLog(opts.verbose, "[INFO]", chalk.cyan);
-  log_success_v = makeLog(opts.verbose, "[INFO] ", chalk.green);
+  log_info = makeLog_info(opts.verbose);
+  log_success_v = makeLog_success_v(opts.verbose);
 
   log_info(chalk`Options: 
   RoutesPath: {green "${opts.routesPath}"}
+  WsPath: {green ${opts.wsPath ? '"' + opts.wsPath + '"' : "false"}}
   OutDir: {green "${opts.outDir}"}
   Verbose: {yellow ${opts.verbose}}`);
 
   return opts;
 }
 
+/** Persmission request helper */
+async function request(desc: Deno.PermissionDescriptor, txt: string) {
+  switch ((await Deno.permissions.request(desc)).state) {
+    case "granted":
+      log_success_v(txt);
+      return true;
+
+    case "denied":
+      log_error(txt);
+      return false;
+
+    default:
+      return false;
+  }
+}
+
 async function request_permisions(
-  opts: Required<CompileOptions>
+  opts: Required<CompileOptions>,
 ): Promise<boolean> {
   log_info("Prompting permissions");
-
-  const request = async (desc: Deno.PermissionDescriptor, txt: string) => {
-    switch ((await Deno.permissions.request(desc)).state) {
-      case "granted":
-        log_success_v(txt);
-        return true;
-
-      case "denied":
-        log_error(txt);
-        return false;
-
-      default:
-        return false;
-    }
-  };
 
   const read = (path: string) =>
     request(
@@ -279,7 +146,7 @@ async function request_permisions(
         name: "read",
         path: path,
       },
-      chalk`Read permission {dim (${path})}`
+      chalk`Read permission {dim (${path})}`,
     );
 
   const write = (path: string) =>
@@ -288,7 +155,7 @@ async function request_permisions(
         name: "write",
         path: path,
       },
-      chalk`Write permission {dim (${path})}`
+      chalk`Write permission {dim (${path})}`,
     );
 
   if (!(await read(opts.routesPath))) return false;

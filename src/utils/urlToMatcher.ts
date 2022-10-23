@@ -1,6 +1,6 @@
 export interface UrlMatcher {
-  exact(target: string): boolean;
-  exactDecl(target: string): string;
+  exact(target: string, params: Map<string, string>): boolean;
+  exactDecl(target: string, params: string): string;
   start(target: string): boolean;
   startDecl(target: string): string;
   prepareDecl(target: string, val: string): string;
@@ -9,14 +9,15 @@ export interface UrlMatcher {
 
 export type UrlMatcherPart =
   | {
-      raw: string;
-      isVar: false;
-    }
+    raw: string;
+    isVar: false;
+    varname?: string;
+  }
   | {
-      raw: string;
-      isVar: true;
-      varname: string;
-    };
+    raw: string;
+    isVar: true;
+    varname: string;
+  };
 
 export function urlToMatcher(url: string): UrlMatcher {
   const parts = getUrlMatcherParts(url);
@@ -26,7 +27,7 @@ export function urlToMatcher(url: string): UrlMatcher {
     const partsSerialized = JSON.stringify(parts);
 
     return {
-      exact(target) {
+      exact(target, params) {
         const targetParts = target.split("/");
         targetParts.shift();
         // Remove last if it's empty, handle "/my/path/"
@@ -39,25 +40,34 @@ export function urlToMatcher(url: string): UrlMatcher {
 
         if (targetParts.length !== parts.length) return false;
 
+        params.clear();
         return targetParts.every((part, index) => {
           if (!parts[index]) return false;
 
-          if (parts[index].isVar) return true;
+          if (parts[index].isVar) {
+            params.set(parts[index].varname!, part);
+            return true;
+          }
 
           if (parts[index].raw === part) return true;
 
           return false;
         });
       },
-      exactDecl(target) {
+      exactDecl(target, params) {
         return `(() => {
           const t = urlMatcherPrepare_${target};
           const p = urlMatcherSerial_${target};
+          const m = ${params};
 
           if (t.length !== p.length) return false;
+          m.clear();
           return t.every((tp,i) => {
             if (!p[i]) return false;
-            if (p[i].isVar) return true;
+            if (p[i].isVar) {
+              m.set(p[i].varname,tp);
+              return true;
+            }
             if (p[i].raw === tp) return true;
             return false;
           });
@@ -89,7 +99,7 @@ export function urlToMatcher(url: string): UrlMatcher {
       startDecl(target) {
         return `(() => {
           const t = urlMatcherPrepare_${target};
-          const p = ${partsSerialized};
+          const p = urlMatcherSerial_${target};
 
           if (t.length < p.length) return false;
           return p.every((tp,i) => {
@@ -105,8 +115,8 @@ export function urlToMatcher(url: string): UrlMatcher {
       },
 
       serialDecl(target) {
-        return `const urlMatcherSerial_${target} = ${partsSerialized};`
-      }
+        return `const urlMatcherSerial_${target} = ${partsSerialized};`;
+      },
     };
   }
 
@@ -128,7 +138,7 @@ export function urlToMatcher(url: string): UrlMatcher {
     },
     serialDecl(_target) {
       return "";
-    }
+    },
   };
 }
 

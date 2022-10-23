@@ -1,6 +1,5 @@
 import { RouteImport, RouteImportType } from "./RouteImport.ts";
-import "../test_deps.ts";
-import { bdd } from "../test_deps.ts";
+import { bdd } from "../../test_deps.ts";
 const expect = chai.expect;
 
 function setSize(n: number) {
@@ -123,7 +122,7 @@ import * as s4 from "/my/path"`);
       addMulti(["m2", "m3"]);
 
       expect(routeImport.toImportString()).to.be.equal(
-        'import {m1,m2,m3} from "/my/path"'
+        'import {m1,m2,m3} from "/my/path"',
       );
     });
 
