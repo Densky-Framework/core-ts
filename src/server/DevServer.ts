@@ -9,6 +9,7 @@ import { graphHttpToTerminal } from "../compiler/grapher/terminal.ts";
 
 export class DevServer extends BaseServer {
   routesTree!: HttpRoutesTree;
+  controllersCache = new Map<string, IController>();
 
   constructor(options: BaseServerOptions, readonly routesPath: string) {
     super(options);
@@ -35,7 +36,7 @@ export class DevServer extends BaseServer {
   async handleRequest(request: Deno.RequestEvent): Promise<Response> {
     const httpRequest = new HTTPRequest(request);
     const controllerTree = this.routesTree.handleRoute(httpRequest.pathname);
-    const controllerUrl = controllerTree && controllerTree.routeFile!.filePath;
+    const controllerUrl = controllerTree && controllerTree.routeFile?.filePath;
 
     // There isn't a controller for given path
     if (!controllerUrl) {
@@ -46,7 +47,11 @@ export class DevServer extends BaseServer {
     let controllerMod;
 
     try {
-      controllerMod = await import(controllerUrl);
+      if (this.controllersCache.has(controllerUrl)) {
+        controllerMod = this.controllersCache.get(controllerUrl);
+      } else {
+        controllerMod = await import(controllerUrl);
+      }
     } catch (e) {
       return HTTPError.fromError(e as Error).toResponse();
     }
@@ -57,29 +62,30 @@ export class DevServer extends BaseServer {
         "Not default export or it isn't a class",
       )
         .withName("ExportError")
-        .withDetails({note: "This file will be ignored at build time"})
+        .withDetails({ note: "This file will be ignored at build time" })
         .toResponse();
     }
 
-    const controller: IController = new controllerMod["default"]();
-    const method = request.request.method as keyof IController;
+    this.controllersCache.set(controllerUrl, controllerMod);
 
-    if (method in controller && typeof controller[method] === "function") {
+    const controller: IController = new controllerMod["default"]();
+    const method = httpRequest.method as keyof IController;
+
+    const runMethod = async (method: keyof IController) => {
       try {
         const response = await controller[method]!(httpRequest);
         return toResponse(response);
       } catch (e) {
         return HTTPError.fromError(e as Error).toResponse();
       }
+    };
+
+    if (method in controller && typeof controller[method] === "function") {
+      return await runMethod(method);
     }
 
     if ("ANY" in controller && typeof controller.ANY === "function") {
-      try {
-        const response = await controller.ANY!(httpRequest);
-        return toResponse(response);
-      } catch (e) {
-        return HTTPError.fromError(e as Error).toResponse();
-      }
+      return await runMethod("ANY");
     }
 
     return new HTTPError(StatusCode.NOT_METHOD).toResponse();
