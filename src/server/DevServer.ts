@@ -41,7 +41,7 @@ export class DevServer extends BaseServer {
     try {
       const response = await controller[method]!(httpRequest);
       if (response) {
-        return toResponse(response);
+        return toResponse(httpRequest, response);
       } else return null;
     } catch (e) {
       return HTTPError.fromError(e as Error).toResponse();

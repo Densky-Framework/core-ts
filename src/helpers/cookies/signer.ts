@@ -32,12 +32,12 @@ const decoder = new TextDecoder("utf-8");
 export async function sign(data: string) {
   const d = await crypto.subtle.sign("HMAC", cookieKey, encoder.encode(data));
 
-  return encodeURI(encode64(d));
+  return encode64(d);
 }
 
 /** @internal */
 export async function verify(signature: string, data: string) {
-  const sign_decoded = decode64(decodeURI(signature));
+  const sign_decoded = decode64(signature);
 
   return await crypto.subtle.verify(
     "HMAC",
@@ -59,17 +59,20 @@ export async function getDecodedCookies(
     try {
       // The signed cookie is always in base64 and
       // has the next format: VALUE.SIGNATURE
-      const [value, signature] = decoder.decode(decode64(cookie.slice(2)))
-        .split(".", 1);
-      const verified = await verify(signature, decodeURI(value));
+      const [value, signature] = cookie.slice(2)
+        .split(".", 2);
+
+      const decodedValue = decoder.decode(decode64(value));
+
+      const verified = await verify(signature, decodedValue);
 
       if (verified) {
-        cookies[key] = value;
+        cookies[key] = decodedValue;
       } else {
         delete cookies[key];
       }
     } catch (e) {
-      log_warn("Error decoding cookie (" + key + "):", e);
+      log_warn("Error decoding cookie (" + key + "):", (e as Error).stack);
     }
   }
 
@@ -80,7 +83,7 @@ export async function getDecodedCookies(
 export async function signedCookie(data: string) {
   const signature = await sign(data);
 
-  return encode64(`${encodeURI(data)}.${signature}`);
+  return `s:${encode64(data)}.${signature}`;
 }
 
 export type CookieOptions = Omit<Cookie, "name" | "value"> & {

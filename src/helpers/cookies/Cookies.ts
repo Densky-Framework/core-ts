@@ -8,10 +8,10 @@ import {
 export class Cookies {
   raw: Record<string, string> | null = null;
 
-  constructor(readonly headers: Headers) {}
+  constructor(readonly reqHeaders: Headers, readonly resHeaders: Headers) {}
 
   async parse() {
-    this.raw = await getDecodedCookies(this.headers);
+    this.raw = await getDecodedCookies(this.reqHeaders);
   }
 
   getRaw(key: string): string | null {
@@ -61,7 +61,7 @@ export class Cookies {
   }
 
   async setRaw(key: string, value: string, options: CookieOptions = {}) {
-    await setEncodedCookie(this.headers, key, value, options);
+    await setEncodedCookie(this.resHeaders, key, value, options);
   }
 
   async set(key: string, value: unknown, options: CookieOptions = {}) {

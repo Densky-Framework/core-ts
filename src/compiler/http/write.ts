@@ -21,7 +21,7 @@ import mainHandler from "./http/index.ts";
 ${toResponseFnDecl()}
 
 export default async function requestHandler(req: $Dusky$.HTTPRequest): Promise<Response> {
-  return toResponse(await mainHandler(req) ?? new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_FOUND));
+  return toResponse(req, await mainHandler(req) ?? new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_FOUND));
 }`;
     await Deno.writeTextFile(
       mainPath,

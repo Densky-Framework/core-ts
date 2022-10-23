@@ -14,13 +14,15 @@ export class HTTPRequest {
   /** @internal */
   readonly byParts: string[];
 
+  readonly data = new Map<string, unknown>();
+
   private _prepared = false;
 
   constructor(readonly event: Deno.RequestEvent) {
     this.raw = event.request;
     this.method = this.raw.method as HTTPMethodStr;
-    this.headers = this.raw.headers;
-    this.cookies = new Cookies(this.headers);
+    this.headers = new Headers();
+    this.cookies = new Cookies(this.raw.headers, this.headers);
 
     this.url = new URL(this.raw.url);
     this.pathname = this.url.pathname;
