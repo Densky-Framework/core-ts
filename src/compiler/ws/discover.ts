@@ -15,7 +15,7 @@ import { WsRoutesRoot } from "./WsRoutesRoot.ts";
  */
 export async function wsDiscover(
   opts: Required<CompileOptions>,
-): Promise<WsRoutesTree | null> {
+): Promise<WsRoutesRoot | null> {
   if (!opts.wsPath) return null;
 
   const log_info = makeLog_info(opts.verbose);

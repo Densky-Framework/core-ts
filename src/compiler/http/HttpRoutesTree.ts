@@ -8,6 +8,16 @@ export class HttpRoutesTree extends RoutesTree<HttpRouteFile> {
     return false;
   }
 
+  override getParams(): string {
+    return "req: $Dusky$.HTTPRequest";
+  }
+  override getReturnType(): string {
+    return "Promise<$Dusky$.HTTPPossibleResponse>";
+  }
+  override getRequestVariable(): string {
+    return "req";
+  }
+
   generateBodyContent() {
     const hasAny = this.routeFile?.handlers?.has("ANY") ?? false;
     const middlewares = this.generateMiddlewares();

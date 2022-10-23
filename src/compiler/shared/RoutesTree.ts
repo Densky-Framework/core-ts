@@ -98,6 +98,10 @@ export abstract class RoutesTree<
     return this;
   }
 
+  abstract getParams(): string;
+  abstract getReturnType(): string;
+  abstract getRequestVariable(): string;
+
   generateImports(): string {
     if (this.routeFile) this.routeFile.outPath = this.filePath;
 
@@ -174,7 +178,7 @@ ${middlewareImports}`;
 
     const bodyContent = this.generateBodyContent();
 
-    const body = this.isMiddleware
+    const body = this.isMiddleware || this.isRoot
       ? bodyContent
       : this.routeFile
       ? `if (${this.matcher.exactDecl("pathname")}) { ${bodyContent} }`
@@ -223,8 +227,8 @@ ${routeImportsStr.join(";\n")}
 
 ${this.matcher.serialDecl("pathname")}
 
-async function handler(req: $Dusky$.HTTPRequest): Promise<$Dusky$.HTTPPossibleResponse> {
-  ${this.matcher.prepareDecl("pathname", "req")}
+async function handler(${this.getParams()}): ${this.getReturnType()} {
+  ${this.matcher.prepareDecl("pathname", this.getRequestVariable())}
   ${handler}
 }
 

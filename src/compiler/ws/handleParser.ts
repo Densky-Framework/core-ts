@@ -13,7 +13,7 @@ export function makeError(filePath: string, error: string): Error {
   return new Error(chalk.dim(`[${filePath}] `) + error);
 }
 
-// export default TYPE IDENT(CTX: TY, REQ: TY) RETURN_TYPE {
+// export default TYPE IDENT(CTX: TY, SOCK: TY) RETURN_TYPE {
 const handlerRegex =
   /export\s+default\s+function\s+(\w+)\s*\(\s*(?:(\w+)\s*(?::\s*\w+)\s*(?:,\s*(\w+)(?:.*))?)?\)(?:.*)?{/;
 

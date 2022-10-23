@@ -33,7 +33,7 @@ export default function handleWS(ctxParam: WsContext, reqParam: WsRequest): void
   req.send(req.path, "Echo: " + req.data);
 `);
     expect(handler.ctxParam).to.be.equal("ctxParam");
-    expect(handler.reqParam).to.be.equal("reqParam");
+    expect(handler.sockParam).to.be.equal("reqParam");
   });
 
   bdd.it("Test 2", () => {
@@ -51,7 +51,7 @@ export default function handleWS(ctxParam: WsContext): void {
     expect(handler.body).to.be.equal(`
 `);
     expect(handler.ctxParam).to.be.equal("ctxParam");
-    expect(handler.reqParam).to.be.undefined;
+    expect(handler.sockParam).to.be.undefined;
   });
 
   bdd.it("Test 3", () => {
@@ -69,7 +69,7 @@ export default function handleWS(): void {
     expect(handler.body).to.be.equal(`
 `);
     expect(handler.ctxParam).to.be.undefined;
-    expect(handler.reqParam).to.be.undefined;
+    expect(handler.sockParam).to.be.undefined;
   });
 
   bdd.it("Test Fails", () => {
