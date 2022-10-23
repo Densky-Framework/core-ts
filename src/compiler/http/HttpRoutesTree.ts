@@ -20,6 +20,7 @@ export class HttpRoutesTree extends RoutesTree<HttpRouteFile> {
 
   generateBodyContent() {
     const hasAny = this.routeFile?.handlers?.has("ANY") ?? false;
+    const prepareRequest = this.generatePrepareRequest();
     const middlewares = this.generateMiddlewares();
 
     return this.routeFile
@@ -27,10 +28,11 @@ export class HttpRoutesTree extends RoutesTree<HttpRouteFile> {
         .map(([method, handl]) => {
           return method !== "ANY"
             ? `if (req.method === "${method}") {
+    ${prepareRequest}
     ${middlewares}
     ${handl.body}
   }`
-            : middlewares + handl.body;
+            : prepareRequest + middlewares + handl.body;
         })
         .join("\n") +
         (!hasAny && !this.isMiddleware
