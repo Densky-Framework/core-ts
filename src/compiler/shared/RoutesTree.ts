@@ -61,7 +61,7 @@ export abstract class RoutesTree<
     this.calculateMiddlewares();
   }
 
-  private calculateMiddlewares() {
+  calculateMiddlewares() {
     this.middlewares = [];
 
     const stack: (typeof this["_TREE"])[] = [];
