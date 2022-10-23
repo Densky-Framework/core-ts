@@ -101,7 +101,10 @@ export class DevServer extends BaseServer {
    */
   async handleRequest(request: Deno.RequestEvent): Promise<Response> {
     const httpRequest = new HTTPRequest(request);
-    const controllerTree = this.routesTree.handleRoute(httpRequest.pathname);
+    const controllerTree = this.routesTree.handleRoute(
+      httpRequest.pathname,
+      httpRequest.params,
+    );
     let controller: IController;
 
     {

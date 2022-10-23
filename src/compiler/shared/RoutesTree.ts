@@ -100,7 +100,11 @@ export abstract class RoutesTree<
   abstract getRequestVariable(): string;
 
   protected generatePrepareRequest(): string {
-    return `await ${this.getRequestVariable()}.prepare();`
+    return `await ${this.getRequestVariable()}.prepare();`;
+  }
+
+  protected generateParamsRequest(): string {
+    return `${this.getRequestVariable()}.params`;
   }
 
   generateImports(): string {
@@ -182,7 +186,9 @@ ${middlewareImports}`;
     const body = this.isMiddleware || this.isRoot
       ? bodyContent
       : this.routeFile
-      ? `if (${this.matcher.exactDecl("pathname")}) { ${bodyContent} }`
+      ? `if (${
+        this.matcher.exactDecl("pathname", this.generateParamsRequest())
+      }) { ${bodyContent} }`
       : "";
 
     return childCalls + ";\n\n" + body;
@@ -245,15 +251,18 @@ export default handler;
   /**
    * Handle path for each leaf and if some match, then return it
    */
-  handleRoute(path: string): (typeof this["_TREE"]) | null {
+  handleRoute(
+    path: string,
+    params: Map<string, string>,
+  ): (typeof this["_TREE"]) | null {
     if (this.matcher.start(path)) {
       for (const child of this.children) {
-        const out = child.handleRoute(path);
+        const out = child.handleRoute(path, params);
         if (out) return out;
       }
 
       // Match path and is endpoint
-      if (this.matcher.exact(path) && this.routeFile) {
+      if (this.matcher.exact(path, params) && this.routeFile) {
         return this;
       }
 

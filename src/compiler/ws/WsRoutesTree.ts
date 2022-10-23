@@ -32,6 +32,8 @@ export class WsRoutesTree extends RoutesTree<WsRouteFile> {
   }
 
   override generateBodyContent(): string {
-    return this.routeFile ? this.generateMiddlewares() + this.routeFile.handler.body : "";
+    return this.routeFile
+      ? this.generateMiddlewares() + this.routeFile.handler.body
+      : "";
   }
 }

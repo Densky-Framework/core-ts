@@ -1,5 +1,5 @@
 import { HTTPMethodStr } from "../common.ts";
-import {Cookies} from "../helpers/cookies.ts"
+import { Cookies } from "../helpers/cookies.ts";
 
 export class HTTPRequest {
   readonly raw: Request;
@@ -9,7 +9,7 @@ export class HTTPRequest {
 
   readonly url: URL;
   readonly pathname: string;
-  readonly params = new Map<string, string>;
+  readonly params = new Map<string, string>();
 
   /** @internal */
   readonly byParts: string[];
