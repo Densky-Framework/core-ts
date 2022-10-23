@@ -5,6 +5,7 @@ import { BaseServer, BaseServerOptions } from "./BaseServer.ts";
 import { toResponse } from "../utils.ts";
 import { HttpRoutesTree } from "../compiler/http/HttpRoutesTree.ts";
 import { httpDiscover } from "../compiler/http/discover.ts";
+import { graphHttpToTerminal } from "../compiler/grapher/terminal.ts";
 
 export class DevServer extends BaseServer {
   routesTree!: HttpRoutesTree;
@@ -25,12 +26,16 @@ export class DevServer extends BaseServer {
     if (!routesTree) throw new Error("Can't generate the routes tree");
     this.routesTree = routesTree;
 
+    console.log("Routes Tree:");
+    graphHttpToTerminal(routesTree);
+
     await super.start();
   }
 
   async handleRequest(request: Deno.RequestEvent): Promise<Response> {
     const httpRequest = new HTTPRequest(request);
-    const controllerUrl = null; // await this.resolveRoute(httpRequest.pathname);
+    const controllerTree = this.routesTree.handleRoute(httpRequest.pathname);
+    const controllerUrl = controllerTree && controllerTree.routeFile!.filePath;
 
     // There isn't a controller for given path
     if (!controllerUrl) {
@@ -52,6 +57,7 @@ export class DevServer extends BaseServer {
         "Not default export or it isn't a class",
       )
         .withName("ExportError")
+        .withDetails({note: "This file will be ignored at build time"})
         .toResponse();
     }
 
@@ -67,8 +73,13 @@ export class DevServer extends BaseServer {
       }
     }
 
-    if ("ANY" in controller) {
-      return new Response("Teapot ANY");
+    if ("ANY" in controller && typeof controller.ANY === "function") {
+      try {
+        const response = await controller.ANY!(httpRequest);
+        return toResponse(response);
+      } catch (e) {
+        return HTTPError.fromError(e as Error).toResponse();
+      }
     }
 
     return new HTTPError(StatusCode.NOT_METHOD).toResponse();

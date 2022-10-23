@@ -240,6 +240,28 @@ export default handler;
     return format(this.filePath, content);
   }
 
+  /**
+   * Handle path for each leaf and if some match, then return it
+   */
+  handleRoute(path: string): (typeof this["_TREE"]) | null {
+    if (this.matcher.start(path)) {
+      for (const child of this.children) {
+        const out = child.handleRoute(path);
+        if (out) return out;
+      }
+
+      if (this.matcher.exact(path)) {
+        return this;
+      }
+
+      if (this.fallback) {
+        return this.fallback;
+      }
+    }
+
+    return null;
+  }
+
   async writeFile() {
     await fs.ensureDir(pathMod.dirname(this.filePath));
     await Deno.writeTextFile(this.filePath, this.buildFile());
