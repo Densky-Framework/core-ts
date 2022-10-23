@@ -14,7 +14,7 @@ import { CompileOptions } from "../types.ts";
  */
 export async function httpDiscover(
   opts: Required<CompileOptions>,
-  setFileContents = false,
+  setFileContents = true,
 ): Promise<HttpRoutesTree | null> {
   const log_info = makeLog_info(opts.verbose);
   const log_success_v = makeLog_success_v(opts.verbose);
