@@ -54,7 +54,10 @@ export async function getDecodedCookies(
 
   for (const [key, cookie] of Object.entries(cookies)) {
     const isSigned = cookie.startsWith("s:");
-    if (!isSigned) continue;
+    if (!isSigned) {
+      cookies[key] = decodeURI(cookie);
+continue;
+    }
 
     try {
       // The signed cookie is always in base64 and
@@ -96,7 +99,7 @@ export async function setEncodedCookie(
   value: string,
   options: CookieOptions,
 ): Promise<void> {
-  const cookieValue = options.raw ? value : await signedCookie(value);
+  const cookieValue = options.raw ? encodeURI(value) : await signedCookie(value);
 
   const cookie: Cookie = {
     name: key,
