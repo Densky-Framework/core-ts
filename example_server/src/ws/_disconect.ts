@@ -1,3 +1,3 @@
 export default function disconect() {
-  console.log("Socket is disconected")
+  console.log("Socket is disconected");
 }
