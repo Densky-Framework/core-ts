@@ -252,7 +252,8 @@ export default handler;
         if (out) return out;
       }
 
-      if (this.matcher.exact(path)) {
+      // Match path and is endpoint
+      if (this.matcher.exact(path) && this.routeFile) {
         return this;
       }
 
