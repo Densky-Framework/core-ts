@@ -1,68 +1,45 @@
 import { StatusCode } from "../common.ts";
-import { path, pathPosix } from "../deps.ts";
 import { HTTPError, HTTPRequest } from "../http/index.ts";
 import { IController } from "../router/Controller.ts";
 import { BaseServer, BaseServerOptions } from "./BaseServer.ts";
 import { toResponse } from "../utils.ts";
+import { HttpRoutesTree } from "../compiler/http/HttpRoutesTree.ts";
+import { httpDiscover } from "../compiler/http/discover.ts";
+import { graphHttpToTerminal } from "../compiler/grapher/terminal.ts";
 
 export class DevServer extends BaseServer {
+  routesTree!: HttpRoutesTree;
+
   constructor(options: BaseServerOptions, readonly routesPath: string) {
     super(options);
-    routesPath = new URL(routesPath).pathname;
   }
 
-  protected resolveRawRoute(route: string): string {
-    route = route.trim();
+  override async start(): Promise<void> {
+    const tmpDir = await Deno.makeTempDir({ prefix: "densky-cache" });
+    const routesTree = await httpDiscover({
+      routesPath: this.routesPath,
+      wsPath: "",
+      outDir: tmpDir,
+      verbose: false,
+    }, false);
 
-    if (pathPosix.isAbsolute(route)) {
-      route = route.slice(1).trim();
-    }
+    if (!routesTree) throw new Error("Can't generate the routes tree");
+    this.routesTree = routesTree;
 
-    if (route === "") {
-      route = "index";
-    }
+    console.log("Routes Tree:");
+    graphHttpToTerminal(routesTree);
 
-    return path.join(this.routesPath, route);
-  }
-
-  protected async resolveRoute(route: string): Promise<string | null> {
-    const rawRoute = this.resolveRawRoute(route);
-
-    const handleFile = async (filePath: string) => {
-      // If can open it and it's a file, then return the file path,
-      // else return null
-      try {
-        return (await (await Deno.open(filePath)).stat()).isFile
-          ? filePath
-          : null;
-      } catch (_) {
-        return null;
-      }
-    };
-
-    return (
-      // Handle ROUTE.ts
-      (await handleFile(rawRoute + ".ts")) ??
-        // Handle ROUTE/index.ts
-        (await handleFile(pathPosix.join(rawRoute, "index.ts"))) ??
-        // Handle ROUTE/_fallback.ts
-        (await handleFile(pathPosix.join(rawRoute, "_fallback.ts"))) ??
-        // Handle _fallback.ts
-        (await handleFile(
-          pathPosix.join(pathPosix.dirname(rawRoute), "_fallback.ts"),
-        ))
-    );
+    await super.start();
   }
 
   async handleRequest(request: Deno.RequestEvent): Promise<Response> {
-    const url = new URL(request.request.url);
-    const controllerUrl = await this.resolveRoute(url.pathname);
+    const httpRequest = new HTTPRequest(request);
+    const controllerTree = this.routesTree.handleRoute(httpRequest.pathname);
+    const controllerUrl = controllerTree && controllerTree.routeFile!.filePath;
 
     // There isn't a controller for given path
     if (!controllerUrl) {
-      return new HTTPError(StatusCode.NOT_FOUND)
-        .withDetails({ code: "ENOTFOUND" })
-        .toResponse();
+      return new HTTPError(StatusCode.NOT_FOUND).toResponse();
     }
 
     // Try to import and handle import errors
@@ -80,6 +57,7 @@ export class DevServer extends BaseServer {
         "Not default export or it isn't a class",
       )
         .withName("ExportError")
+        .withDetails({note: "This file will be ignored at build time"})
         .toResponse();
     }
 
@@ -88,15 +66,20 @@ export class DevServer extends BaseServer {
 
     if (method in controller && typeof controller[method] === "function") {
       try {
-        const response = await controller[method]!(new HTTPRequest(request));
+        const response = await controller[method]!(httpRequest);
         return toResponse(response);
       } catch (e) {
         return HTTPError.fromError(e as Error).toResponse();
       }
     }
 
-    if ("ANY" in controller) {
-      return new Response("Teapot ANY");
+    if ("ANY" in controller && typeof controller.ANY === "function") {
+      try {
+        const response = await controller.ANY!(httpRequest);
+        return toResponse(response);
+      } catch (e) {
+        return HTTPError.fromError(e as Error).toResponse();
+      }
     }
 
     return new HTTPError(StatusCode.NOT_METHOD).toResponse();
