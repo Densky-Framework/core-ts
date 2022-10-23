@@ -33,9 +33,27 @@ export class DevServer extends BaseServer {
     await super.start();
   }
 
-  async handleRequest(request: Deno.RequestEvent): Promise<Response> {
-    const httpRequest = new HTTPRequest(request);
-    const controllerTree = this.routesTree.handleRoute(httpRequest.pathname);
+  async runMethod(
+    controller: IController,
+    method: keyof IController,
+    httpRequest: HTTPRequest,
+  ): Promise<Response | null> {
+    try {
+      const response = await controller[method]!(httpRequest);
+      if (response) {
+        return toResponse(response);
+      } else return null;
+    } catch (e) {
+      return HTTPError.fromError(e as Error).toResponse();
+    }
+  }
+
+  /**
+   * Resolve controllers and use cache
+   */
+  protected async getController(
+    controllerTree: HttpRoutesTree | null,
+  ): Promise<IController | Response> {
     const controllerUrl = controllerTree && controllerTree.routeFile?.filePath;
 
     // There isn't a controller for given path
@@ -50,6 +68,9 @@ export class DevServer extends BaseServer {
       if (this.controllersCache.has(controllerUrl)) {
         controllerMod = this.controllersCache.get(controllerUrl);
       } else {
+        // If it isn't cached, then recalculate middlewares for
+        // prevent bugs in discover
+        controllerTree.calculateMiddlewares();
         controllerMod = await import(controllerUrl);
       }
     } catch (e) {
@@ -69,15 +90,49 @@ export class DevServer extends BaseServer {
     this.controllersCache.set(controllerUrl, controllerMod);
 
     const controller: IController = new controllerMod["default"]();
+
+    return controller;
+  }
+
+  /**
+   * MainHandler
+   *
+   * Get raw event, resolve controllers and middlewares, and run methods
+   */
+  async handleRequest(request: Deno.RequestEvent): Promise<Response> {
+    const httpRequest = new HTTPRequest(request);
+    const controllerTree = this.routesTree.handleRoute(httpRequest.pathname);
+    let controller: IController;
+
+    {
+      const _ = await this.getController(controllerTree);
+
+      if (_ instanceof Response) return _;
+
+      controller = _;
+    }
+
     const method = httpRequest.method as keyof IController;
 
-    const runMethod = async (method: keyof IController) => {
-      try {
-        const response = await controller[method]!(httpRequest);
-        return toResponse(response);
-      } catch (e) {
-        return HTTPError.fromError(e as Error).toResponse();
+    const runMethod = async (method: keyof IController): Promise<Response> => {
+      const middlewares = controllerTree!.middlewares;
+
+      for (const middlewareTree of middlewares) {
+        // Get middleware controller
+        let middleware: IController;
+        {
+          const _ = await this.getController(middlewareTree);
+          if (_ instanceof Response) return _;
+          middleware = _;
+        }
+
+        // Run and if return something, then it will be the response
+        const res = await this.runMethod(middleware, method, httpRequest);
+
+        if (res) return res;
       }
+
+      return (await this.runMethod(controller, method, httpRequest))!;
     };
 
     if (method in controller && typeof controller[method] === "function") {
