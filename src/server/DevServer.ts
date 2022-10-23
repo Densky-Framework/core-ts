@@ -115,6 +115,7 @@ export class DevServer extends BaseServer {
     const method = httpRequest.method as keyof IController;
 
     const runMethod = async (method: keyof IController): Promise<Response> => {
+      await httpRequest.prepare();
       const middlewares = controllerTree!.middlewares;
 
       for (const middlewareTree of middlewares) {
