@@ -24,11 +24,15 @@ export class WsRoutesRoot extends WsRoutesTree {
     let imports = super.generateImports();
 
     if (this.connectFile) {
-      imports += `\nimport $connectHandler$ from "./${pathMod.relative(this.dirname, this.connectFile.filePath)}"`
+      imports += `\nimport $connectHandler$ from "./${
+        pathMod.relative(this.dirname, this.connectFile.filePath)
+      }"`;
     }
 
     if (this.disconectFile) {
-      imports += `\nimport $disconectHandler$ from "./${pathMod.relative(this.dirname, this.disconectFile.filePath)}"`
+      imports += `\nimport $disconectHandler$ from "./${
+        pathMod.relative(this.dirname, this.disconectFile.filePath)
+      }"`;
     }
 
     return imports;
