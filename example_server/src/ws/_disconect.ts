@@ -1,3 +1,3 @@
-export default function disconect(sock: WebSocket) {
+export default function disconect() {
   console.log("Socket is disconected")
 }

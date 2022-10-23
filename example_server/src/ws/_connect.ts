@@ -1,3 +1,3 @@
-export default function connect(sock: WebSocket) {
+export default function connect() {
   console.log("Socket is connected")
 }
