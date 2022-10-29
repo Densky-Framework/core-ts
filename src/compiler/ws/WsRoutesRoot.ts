@@ -47,7 +47,7 @@ raw.onopen = () => {
   ${ctx}.queueSockets.delete(${sock});
   const id = ${ctx}.addSocket(${sock});
 
-  ${sock}.sendRaw($Dusky$.SocketMessageEnum.DENSKY_CONNECT, id);
+  ${sock}.sendRaw($Densky$.SocketMessageEnum.DENSKY_CONNECT, id);
   // Compatiblity for router, this is more simple than
   // try to changer the router
   ${ctx}.req.pathname = "/_connect";

@@ -9,10 +9,10 @@ export class HttpRoutesTree extends RoutesTree<HttpRouteFile> {
   }
 
   override getParams(): string {
-    return "req: $Dusky$.HTTPRequest";
+    return "req: $Densky$.HTTPRequest";
   }
   override getReturnType(): string {
-    return "Promise<$Dusky$.HTTPPossibleResponse>";
+    return "Promise<$Densky$.HTTPPossibleResponse>";
   }
   override getRequestVariable(): string {
     return "req";
@@ -36,7 +36,7 @@ export class HttpRoutesTree extends RoutesTree<HttpRouteFile> {
         })
         .join("\n") +
         (!hasAny && !this.isMiddleware
-          ? "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
+          ? "\n\nreturn new $Densky$.HTTPError($Densky$.StatusCode.NOT_METHOD).toResponse()"
           : "")
       : "";
   }

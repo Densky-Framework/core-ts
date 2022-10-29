@@ -102,7 +102,7 @@ export function handleParser(
 
     // Set variable only if it's different to "req"
     const reqDecl = reqParam && reqParam !== "req"
-      ? `let ${reqParam}: $Dusky$.HTTPRequest = req;\n`
+      ? `let ${reqParam}: $Densky$.HTTPRequest = req;\n`
       : "";
 
     const end = reqDecl + remain.slice(0, length - 1).trim();

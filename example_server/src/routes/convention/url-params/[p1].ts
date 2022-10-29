@@ -1,4 +1,4 @@
-import { HTTPRequest, IController } from "dusky";
+import { HTTPRequest, IController } from "densky";
 
 export default class Controller implements IController {
   GET(req: HTTPRequest) {

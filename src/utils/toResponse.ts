@@ -26,21 +26,21 @@ export function toResponse(
   throw new Error("Unreachable code");
 }
 
-export const toResponseFnDecl = (name = "toResponse", dusky = "$Dusky$") => `
+export const toResponseFnDecl = (name = "toResponse", densky = "$densky$") => `
 function ${name} (
-  req: ${dusky}.HTTPRequest,
-  response: ${dusky}.HTTPResponse | Response | ${dusky}.HTTPError | Error | void
+  req: ${densky}.HTTPRequest,
+  response: ${densky}.HTTPResponse | Response | ${densky}.HTTPError | Error | void
 ): Response {
-  if (response instanceof ${dusky}.HTTPResponse) return new Response("Teapot (ToResponse)");
+  if (response instanceof ${densky}.HTTPResponse) return new Response("Teapot (ToResponse)");
   if (response instanceof Response) {
     return new Response(response.body, {
       ...response,
       headers: req.headers
     })
   }
-  if (response instanceof ${dusky}.HTTPError) return ${name}(req, response.toResponse());
+  if (response instanceof ${densky}.HTTPError) return ${name}(req, response.toResponse());
   if (response instanceof Error)
-    return ${name}(req, ${dusky}.HTTPError.fromError(response).toResponse());
+    return ${name}(req, ${densky}.HTTPError.fromError(response).toResponse());
 
   throw new Error("Unreachable code");
 }`;

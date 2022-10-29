@@ -1,4 +1,4 @@
-import { compile } from "dusky/compiler.ts";
+import { compile } from "densky/compiler.ts";
 import { compileOptions } from "./config.ts";
 
 await compile(compileOptions);

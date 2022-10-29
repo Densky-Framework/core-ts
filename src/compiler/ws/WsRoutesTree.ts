@@ -14,7 +14,7 @@ export class WsRoutesTree extends RoutesTree<WsRouteFile> {
   getParams(): string {
     const [ctx, sock] = this.getParamNames();
 
-    return `${ctx}: $Dusky$.SocketCtx, ${sock}: $Dusky$.Socket`;
+    return `${ctx}: $Densky$.SocketCtx, ${sock}: $Densky$.Socket`;
   }
 
   getReturnType(): string {

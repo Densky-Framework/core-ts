@@ -1,4 +1,4 @@
-import { HTTPError, HTTPRequest, IController, StatusCode } from "dusky";
+import { HTTPError, HTTPRequest, IController, StatusCode } from "densky";
 
 export default class _ implements IController {
   ANY(req: HTTPRequest) {
