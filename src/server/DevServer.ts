@@ -19,7 +19,9 @@ export class DevServer extends BaseServer {
     const tmpDir = await Deno.makeTempDir({ prefix: "densky-cache" });
     const routesTree = await httpDiscover({
       routesPath: this.routesPath,
-      wsPath: "",
+      wsPath: false,
+      staticPath: false,
+      staticPrefix: "/static",
       outDir: tmpDir,
       verbose: false,
     }, false);
