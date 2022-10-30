@@ -25,25 +25,26 @@ export class HttpRoutesTree extends RoutesTree<HttpRouteFile> {
     const prepareRequest = this.generatePrepareRequest();
     const middlewares = this.generateMiddlewares();
 
-    const body =
-      Array.from(this.routeFile.handlers.entries())
-        .map(([method, handl]) => {
-          return method !== "ANY"
-            ? `if (req.method === "${method}") {
+    const body = Array.from(this.routeFile.handlers.entries())
+      .map(([method, handl]) => {
+        return method !== "ANY"
+          ? `if (req.method === "${method}") {
     ${prepareRequest}
     ${middlewares}
     ${handl.body}
   }`
-            : prepareRequest + middlewares + handl.body;
-        })
-        .join("\n") +
+          : prepareRequest + middlewares + handl.body;
+      })
+      .join("\n") +
       (!hasAny && !this.isMiddleware
         ? "\n\nreturn new $Densky$.HTTPError($Densky$.StatusCode.NOT_METHOD).toResponse()"
         : "");
 
-    return `if (${this.matcher.exactDecl(
-      "pathname",
-      this.generateParamsRequest()
-    )}) { ${body} }`;
+    return `if (${
+      this.matcher.exactDecl(
+        "pathname",
+        this.generateParamsRequest(),
+      )
+    }) { ${body} }`;
   }
 }

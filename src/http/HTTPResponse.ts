@@ -7,10 +7,11 @@ export class HTTPResponse {
   constructor(readonly event: Deno.RequestEvent) {}
 
   static async view(path: string, init?: ResponseInit): Promise<Response> {
-    if (!this.viewsTree)
+    if (!this.viewsTree) {
       throw new Error(
-        "You're trying to use views without its config. Please set 'viewsPath' config."
+        "You're trying to use views without its config. Please set 'viewsPath' config.",
       );
+    }
 
     const staticFile = await this.viewsTree.getFile(path);
 

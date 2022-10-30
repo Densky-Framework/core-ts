@@ -47,7 +47,7 @@ export class HTTPError {
     error: Error,
     statusCode: number | StatusCode = StatusCode.INTERNAL_ERR,
   ): HTTPError {
-      console.error(chalk.red`[HTTP ${statusCode}] ` + error.message)
+    console.error(chalk.red`[HTTP ${statusCode}] ` + error.message);
 
     return new HTTPError(statusCode, error.message)
       .withName(error.name)

@@ -61,7 +61,13 @@ import httpHandler from "./http.main.ts";
 ${hasWs ? "import wsHandler from './ws.main.ts'" : ""}
 ${hasStatic ? "import staticHandler from './static.main.ts'" : ""}
 
-${opts.viewsPath ? `$Densky$.HTTPResponse.viewsTree = new $Densky$.StaticFiles("${pathMod.relative(Deno.cwd(), opts.viewsPath)}")` : ""}
+${
+        opts.viewsPath
+          ? `$Densky$.HTTPResponse.viewsTree = new $Densky$.StaticFiles("${
+            pathMod.relative(Deno.cwd(), opts.viewsPath)
+          }")`
+          : ""
+      }
 
 export default async function requestHandler(request: Deno.RequestEvent, conn: Deno.Conn): Promise<Response> {
   const req = new $Densky$.HTTPRequest(request);

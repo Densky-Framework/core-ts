@@ -30,6 +30,7 @@ export class DevServer extends BaseServer {
       wsPath: false,
       staticPath: false,
       staticPrefix: "/static",
+      viewsPath: false,
       ...this.devOptions,
       outDir: tmpDir,
       verbose: false,

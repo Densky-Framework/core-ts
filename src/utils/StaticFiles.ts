@@ -13,7 +13,7 @@ export class StaticFiles {
   }
 
   async getFile(filePath: string): Promise<StaticFile> {
-    filePath = this.normPath(filePath)
+    filePath = this.normPath(filePath);
 
     if (!this.cache.has(filePath)) {
       const { ext } = pathMod.parse(filePath);
