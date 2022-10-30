@@ -1,6 +1,6 @@
 import { DevServer } from "densky";
-import { routesPath } from "./config.ts";
+import { compileOptions } from "./config.ts";
 
-const server = new DevServer({ port: 8000, verbose: true }, routesPath);
+const server = new DevServer({ port: 8000, verbose: true }, compileOptions);
 
 server.start();
