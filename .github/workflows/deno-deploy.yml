@@ -34,6 +34,11 @@ jobs:
         with:
           deno-version: v1.x
 
+      - name: Change Branch to build
+        run: |
+          git checkout example-build
+          git merge ${{ github.ref }}
+
       - name: Build
         run: |
           cd example_server
