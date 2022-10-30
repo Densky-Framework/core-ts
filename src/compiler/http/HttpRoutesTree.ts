@@ -19,12 +19,14 @@ export class HttpRoutesTree extends RoutesTree<HttpRouteFile> {
   }
 
   generateBodyContent() {
-    const hasAny = this.routeFile?.handlers?.has("ANY") ?? false;
+    if (!this.routeFile) return "";
+
+    const hasAny = this.routeFile.handlers?.has("ANY") ?? false;
     const prepareRequest = this.generatePrepareRequest();
     const middlewares = this.generateMiddlewares();
 
-    return this.routeFile
-      ? Array.from(this.routeFile.handlers.entries())
+    const body =
+      Array.from(this.routeFile.handlers.entries())
         .map(([method, handl]) => {
           return method !== "ANY"
             ? `if (req.method === "${method}") {
@@ -35,9 +37,13 @@ export class HttpRoutesTree extends RoutesTree<HttpRouteFile> {
             : prepareRequest + middlewares + handl.body;
         })
         .join("\n") +
-        (!hasAny && !this.isMiddleware
-          ? "\n\nreturn new $Densky$.HTTPError($Densky$.StatusCode.NOT_METHOD).toResponse()"
-          : "")
-      : "";
+      (!hasAny && !this.isMiddleware
+        ? "\n\nreturn new $Densky$.HTTPError($Densky$.StatusCode.NOT_METHOD).toResponse()"
+        : "");
+
+    return `if (${this.matcher.exactDecl(
+      "pathname",
+      this.generateParamsRequest()
+    )}) { ${body} }`;
   }
 }

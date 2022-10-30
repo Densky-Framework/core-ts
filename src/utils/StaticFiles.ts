@@ -6,13 +6,20 @@ export class StaticFiles {
 
   constructor(readonly folderPath: string) {}
 
+  normPath(filePath: string): string {
+    return pathMod.resolve(this.folderPath, filePath);
+  }
+
   async getFile(filePath: string): Promise<StaticFile> {
+    filePath = this.normPath(filePath)
+
     if (!this.cache.has(filePath)) {
       const { ext } = pathMod.parse(filePath);
       // ext has a dot and we don't want it
       const extension = ext.slice(1);
       const mimetype = getMimeType(extension) || "text/plain";
 
+      console.log(filePath)
       const file = await Deno.readFile(filePath);
       const staticFile = new StaticFile(file, mimetype);
 
