@@ -36,6 +36,7 @@ jobs:
 
       - name: Change Branch to build
         run: |
+          git branch example-build
           git checkout example-build
           git merge ${{ github.ref }}
 
