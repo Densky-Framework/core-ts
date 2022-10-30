@@ -1,7 +1,8 @@
 import { CompileOptions } from "densky/compiler.ts";
+import { Globals } from "densky";
 
 const pathname = new URL(import.meta.resolve("./")).pathname;
-Deno.env.set("CWD", pathname);
+Globals.cwd = pathname;
 
 console.log("Running in " + pathname);
 

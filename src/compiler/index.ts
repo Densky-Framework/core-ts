@@ -15,6 +15,7 @@ import { wsWrite } from "./ws/write.ts";
 import { format } from "./formatter.ts";
 import { staticDiscover } from "./static/discover.ts";
 import { staticWrite } from "./static/write.ts";
+import {Globals} from "../globals.ts";
 
 export type { CompileOptions };
 
@@ -64,7 +65,7 @@ ${hasStatic ? "import staticHandler from './static.main.ts'" : ""}
 ${
         opts.viewsPath
           ? `$Densky$.HTTPResponse.viewsTree = new $Densky$.StaticFiles("${
-            pathMod.relative(Deno.env.get("CWD")!, opts.viewsPath)
+            pathMod.relative(Globals.cwd, opts.viewsPath)
           }")`
           : ""
       }
@@ -129,13 +130,13 @@ function normalize_options(options: CompileOptions): Required<CompileOptions> {
     options,
   );
 
-  opts.routesPath = path.resolve(Deno.env.get("CWD")!, opts.routesPath);
-  opts.outDir = path.resolve(Deno.env.get("CWD")!, opts.outDir);
-  if (opts.wsPath) opts.wsPath = path.resolve(Deno.env.get("CWD")!, opts.wsPath);
+  opts.routesPath = path.resolve(Globals.cwd, opts.routesPath);
+  opts.outDir = path.resolve(Globals.cwd, opts.outDir);
+  if (opts.wsPath) opts.wsPath = path.resolve(Globals.cwd, opts.wsPath);
   if (opts.staticPath) {
-    opts.staticPath = path.resolve(Deno.env.get("CWD")!, opts.staticPath);
+    opts.staticPath = path.resolve(Globals.cwd, opts.staticPath);
   }
-  if (opts.viewsPath) opts.viewsPath = path.resolve(Deno.env.get("CWD")!, opts.viewsPath);
+  if (opts.viewsPath) opts.viewsPath = path.resolve(Globals.cwd, opts.viewsPath);
 
   log_info = makeLog_info(opts.verbose);
   log_success_v = makeLog_success_v(opts.verbose);

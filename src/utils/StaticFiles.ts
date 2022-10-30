@@ -1,11 +1,12 @@
 import { pathMod } from "../deps.ts";
 import { getMimeType } from "./mime.ts";
+import {Globals} from "../globals.ts";
 
 export class StaticFiles {
   readonly cache = new Map();
 
   constructor(readonly folderPath: string) {
-    this.folderPath = pathMod.resolve(Deno.env.get("CWD")!, folderPath);
+    this.folderPath = pathMod.resolve(Globals.cwd, folderPath);
   }
 
   normPath(filePath: string): string {
