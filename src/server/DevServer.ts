@@ -9,8 +9,6 @@ import { StaticFileTree } from "../compiler/static/StaticFileTree.ts";
 import { staticDiscover } from "../compiler/static/discover.ts";
 import { graphHttpToTerminal } from "../compiler/grapher/terminal.ts";
 import { CompileOptions } from "../compiler/types.ts";
-import { pathMod } from "../deps.ts";
-import { Globals } from "../globals.ts";
 
 export type DevServerOptions = Omit<CompileOptions, "outDir" | "verbose">;
 
@@ -50,7 +48,7 @@ export class DevServer extends BaseServer {
     }
 
     if (opts.viewsPath) {
-      HTTPResponse.viewsTree = new StaticFiles(pathMod.resolve(Globals.cwd, opts.viewsPath));
+      HTTPResponse.viewsTree = new StaticFiles(opts.viewsPath);
     }
 
     console.log("Routes Tree:");
