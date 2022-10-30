@@ -1,9 +1,9 @@
 import { bdd } from "../test_deps.ts";
-import { getType } from "./mime.ts";
+import { getMimeType } from "./mime.ts";
 const expect = chai.expect;
 
 function testType(input: string, expected: string) {
-  const output = getType(input);
+  const output = getMimeType(input);
   expect(output, input).to.be.a("string");
   expect(output, input).to.be.equal(expected);
 }

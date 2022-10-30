@@ -32,7 +32,7 @@ function define(typeMap: Record<string, string[]>, force = false) {
   }
 }
 
-function getType(ext: string): string | null {
+function getMimeType(ext: string): string | null {
   return types[ext] || null;
 }
 
@@ -46,8 +46,8 @@ define(mimeTypes);
 const mime = {
   define,
   getExtension,
-  getType,
+  getMimeType,
 };
 
 export default mime;
-export { define, getExtension, getType, mime as __moduleExports };
+export { define, getExtension, getMimeType, mime as __moduleExports };
