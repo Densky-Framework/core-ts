@@ -9,35 +9,42 @@ export class HttpRoutesTree extends RoutesTree<HttpRouteFile> {
   }
 
   override getParams(): string {
-    return "req: $Dusky$.HTTPRequest";
+    return "req: $Densky$.HTTPRequest";
   }
   override getReturnType(): string {
-    return "Promise<$Dusky$.HTTPPossibleResponse>";
+    return "Promise<$Densky$.HTTPPossibleResponse>";
   }
   override getRequestVariable(): string {
     return "req";
   }
 
   generateBodyContent() {
-    const hasAny = this.routeFile?.handlers?.has("ANY") ?? false;
+    if (!this.routeFile) return "";
+
+    const hasAny = this.routeFile.handlers?.has("ANY") ?? false;
     const prepareRequest = this.generatePrepareRequest();
     const middlewares = this.generateMiddlewares();
 
-    return this.routeFile
-      ? Array.from(this.routeFile.handlers.entries())
-        .map(([method, handl]) => {
-          return method !== "ANY"
-            ? `if (req.method === "${method}") {
+    const body = Array.from(this.routeFile.handlers.entries())
+      .map(([method, handl]) => {
+        return method !== "ANY"
+          ? `if (req.method === "${method}") {
     ${prepareRequest}
     ${middlewares}
     ${handl.body}
   }`
-            : prepareRequest + middlewares + handl.body;
-        })
-        .join("\n") +
-        (!hasAny && !this.isMiddleware
-          ? "\n\nreturn new $Dusky$.HTTPError($Dusky$.StatusCode.NOT_METHOD).toResponse()"
-          : "")
-      : "";
+          : prepareRequest + middlewares + handl.body;
+      })
+      .join("\n") +
+      (!hasAny && !this.isMiddleware
+        ? "\n\nreturn new $Densky$.HTTPError($Densky$.StatusCode.NOT_METHOD).toResponse()"
+        : "");
+
+    return `if (${
+      this.matcher.exactDecl(
+        "pathname",
+        this.generateParamsRequest(),
+      )
+    }) { ${body} }`;
   }
 }

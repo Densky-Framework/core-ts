@@ -1,6 +1,6 @@
 {
   "imports": {
-    "dusky": "../mod.ts",
-    "dusky/": "../src/"
+    "densky": "../mod.ts",
+    "densky/": "../src/"
   }
 }

@@ -10,7 +10,7 @@ bdd.describe("Compiler/Ws - handleParser", () => {
     const handler = handleParser(
       `
 import {} from "import/path"
-import {WsRequest, WsContext} from "dusky"
+import {WsRequest, WsContext} from "densky"
 
 export default function handleWS(ctxParam: WsContext, reqParam: WsRequest): void {
   // More lines :D
@@ -40,7 +40,7 @@ export default function handleWS(ctxParam: WsContext, reqParam: WsRequest): void
     const handler = handleParser(
       `
 import {} from "import/path"
-import {WsRequest, WsContext} from "dusky"
+import {WsRequest, WsContext} from "densky"
 
 export default function handleWS(ctxParam: WsContext): void {
 }
@@ -58,7 +58,7 @@ export default function handleWS(ctxParam: WsContext): void {
     const handler = handleParser(
       `
 import {} from "import/path"
-import {WsRequest, WsContext} from "dusky"
+import {WsRequest, WsContext} from "densky"
 
 export default function handleWS(): void {
 }

@@ -147,7 +147,7 @@ export class RouteImport {
     // Handle 'import IMPORT from "path"'
     const defaultImport = hasDefaultImport
       ? remain
-        // Remove end comma, eg. "dusky ,"
+        // Remove end comma, eg. "densky ,"
         .replace(/,$/, "")
       : "";
 

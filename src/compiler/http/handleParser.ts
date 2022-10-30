@@ -1,6 +1,7 @@
 import { HttpRouteHandler } from "./HttpRouteHandler.ts";
 import { chalk, path } from "../../deps.ts";
 import { HTTPMethodStr } from "../../common.ts";
+import {Globals} from "../../globals.ts";
 
 /** @internal */
 export const errors = {
@@ -19,7 +20,7 @@ export function handleParser(
   content: string,
   filePath: string,
 ): HttpRouteHandler[] {
-  const relPath = path.relative(Deno.cwd(), filePath);
+  const relPath = path.relative(Globals.cwd, filePath);
   if (content.length < 10) {
     throw makeError(relPath, errors.EMPTY);
   }
@@ -102,7 +103,7 @@ export function handleParser(
 
     // Set variable only if it's different to "req"
     const reqDecl = reqParam && reqParam !== "req"
-      ? `let ${reqParam}: $Dusky$.HTTPRequest = req;\n`
+      ? `let ${reqParam}: $Densky$.HTTPRequest = req;\n`
       : "";
 
     const end = reqDecl + remain.slice(0, length - 1).trim();

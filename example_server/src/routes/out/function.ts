@@ -1,4 +1,4 @@
-import { IController } from "dusky";
+import { IController } from "densky";
 import { outFunction } from "../../outFunction.ts";
 
 export default class OutFunctionController implements IController {
