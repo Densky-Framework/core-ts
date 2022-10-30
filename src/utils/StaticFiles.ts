@@ -5,7 +5,7 @@ export class StaticFiles {
   readonly cache = new Map();
 
   constructor(readonly folderPath: string) {
-    this.folderPath = pathMod.resolve(Deno.cwd(), folderPath);
+    this.folderPath = pathMod.resolve(Deno.env.get("CWD")!, folderPath);
   }
 
   normPath(filePath: string): string {

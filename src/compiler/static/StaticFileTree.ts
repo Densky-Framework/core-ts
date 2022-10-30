@@ -7,7 +7,7 @@ export class StaticFileTree {
   readonly staticFiles: StaticFiles;
 
   constructor(readonly folderPath: string) {
-    this.staticFiles = new StaticFiles(pathMod.resolve(Deno.cwd(), folderPath));
+    this.staticFiles = new StaticFiles(pathMod.resolve(Deno.env.get("CWD")!, folderPath));
   }
 
   /**

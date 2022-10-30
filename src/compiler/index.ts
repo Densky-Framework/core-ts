@@ -64,7 +64,7 @@ ${hasStatic ? "import staticHandler from './static.main.ts'" : ""}
 ${
         opts.viewsPath
           ? `$Densky$.HTTPResponse.viewsTree = new $Densky$.StaticFiles("${
-            pathMod.relative(Deno.cwd(), opts.viewsPath)
+            pathMod.relative(Deno.env.get("CWD")!, opts.viewsPath)
           }")`
           : ""
       }
@@ -129,13 +129,13 @@ function normalize_options(options: CompileOptions): Required<CompileOptions> {
     options,
   );
 
-  opts.routesPath = path.resolve(Deno.cwd(), opts.routesPath);
-  opts.outDir = path.resolve(Deno.cwd(), opts.outDir);
-  if (opts.wsPath) opts.wsPath = path.resolve(Deno.cwd(), opts.wsPath);
+  opts.routesPath = path.resolve(Deno.env.get("CWD")!, opts.routesPath);
+  opts.outDir = path.resolve(Deno.env.get("CWD")!, opts.outDir);
+  if (opts.wsPath) opts.wsPath = path.resolve(Deno.env.get("CWD")!, opts.wsPath);
   if (opts.staticPath) {
-    opts.staticPath = path.resolve(Deno.cwd(), opts.staticPath);
+    opts.staticPath = path.resolve(Deno.env.get("CWD")!, opts.staticPath);
   }
-  if (opts.viewsPath) opts.viewsPath = path.resolve(Deno.cwd(), opts.viewsPath);
+  if (opts.viewsPath) opts.viewsPath = path.resolve(Deno.env.get("CWD")!, opts.viewsPath);
 
   log_info = makeLog_info(opts.verbose);
   log_success_v = makeLog_success_v(opts.verbose);

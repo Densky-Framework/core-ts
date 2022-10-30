@@ -19,7 +19,7 @@ export function handleParser(
   content: string,
   filePath: string,
 ): HttpRouteHandler[] {
-  const relPath = path.relative(Deno.cwd(), filePath);
+  const relPath = path.relative(Deno.env.get("CWD")!, filePath);
   if (content.length < 10) {
     throw makeError(relPath, errors.EMPTY);
   }
