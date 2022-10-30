@@ -5,7 +5,7 @@ import { StaticFileNode } from "./StaticFileNode.ts";
 import { StaticFileTree } from "./StaticFileTree.ts";
 
 export async function staticDiscover(
-  options: Required<CompileOptions>
+  options: Required<CompileOptions>,
 ): Promise<StaticFileTree | null> {
   if (options.staticPath === false) return null;
 
@@ -22,7 +22,10 @@ export async function staticDiscover(
 
     const relPath = pathPosix.relative(folderPath, file.path);
     const urlPath = options.staticPrefix + "/" + relPath;
-    staticFileTree.files.set(urlPath, new StaticFileNode(urlPath, file.path, staticFiles));
+    staticFileTree.files.set(
+      urlPath,
+      new StaticFileNode(urlPath, file.path, staticFiles),
+    );
   }
 
   return staticFileTree;

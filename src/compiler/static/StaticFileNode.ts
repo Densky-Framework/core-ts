@@ -6,7 +6,7 @@ export class StaticFileNode {
   constructor(
     readonly urlPath: string,
     readonly filePath: string,
-    readonly staticFiles: StaticFiles
+    readonly staticFiles: StaticFiles,
   ) {}
 
   async getStaticFile(): Promise<StaticFile> {

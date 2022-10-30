@@ -5,8 +5,8 @@ import { BaseServer, BaseServerOptions } from "./BaseServer.ts";
 import { toResponse } from "../utils.ts";
 import { HttpRoutesTree } from "../compiler/http/HttpRoutesTree.ts";
 import { httpDiscover } from "../compiler/http/discover.ts";
-import {StaticFileTree} from "../compiler/static/StaticFileTree.ts";
-import {staticDiscover} from "../compiler/static/discover.ts";
+import { StaticFileTree } from "../compiler/static/StaticFileTree.ts";
+import { staticDiscover } from "../compiler/static/discover.ts";
 import { graphHttpToTerminal } from "../compiler/grapher/terminal.ts";
 import { CompileOptions } from "../compiler/types.ts";
 
@@ -17,7 +17,10 @@ export class DevServer extends BaseServer {
   staticTree: StaticFileTree | null = null;
   controllersCache = new Map<string, IController>();
 
-  constructor(options: BaseServerOptions, readonly devOptions: DevServerOptions) {
+  constructor(
+    options: BaseServerOptions,
+    readonly devOptions: DevServerOptions,
+  ) {
     super(options);
   }
 
@@ -30,7 +33,7 @@ export class DevServer extends BaseServer {
       ...this.devOptions,
       outDir: tmpDir,
       verbose: false,
-    }
+    };
 
     const routesTree = await httpDiscover(opts, false);
 
@@ -40,7 +43,7 @@ export class DevServer extends BaseServer {
     const staticTree = await staticDiscover(opts);
 
     if (staticTree) {
-      this.staticTree = staticTree
+      this.staticTree = staticTree;
     }
 
     console.log("Routes Tree:");
@@ -123,7 +126,7 @@ export class DevServer extends BaseServer {
       if (!this.staticTree) break StaticFilesHandler;
 
       const res = await this.staticTree.handleRequest(httpRequest.pathname);
-      if (res) return res
+      if (res) return res;
     }
 
     // Api Routes Handler

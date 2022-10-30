@@ -1,4 +1,5 @@
 import { PrimitiveObject, StatusCode, statusMessages } from "../common.ts";
+import { chalk } from "../deps.ts";
 import { HTTPResponse } from "./HTTPResponse.ts";
 
 export class HTTPError {
@@ -30,8 +31,8 @@ export class HTTPError {
   toJSON() {
     return {
       name: this.name,
-      details: this.details,
       message: this.message,
+      details: this.details,
     };
   }
 
@@ -46,6 +47,8 @@ export class HTTPError {
     error: Error,
     statusCode: number | StatusCode = StatusCode.INTERNAL_ERR,
   ): HTTPError {
+      console.error(chalk.red`[HTTP ${statusCode}] ` + error.message)
+
     return new HTTPError(statusCode, error.message)
       .withName(error.name)
       .withDetails({
