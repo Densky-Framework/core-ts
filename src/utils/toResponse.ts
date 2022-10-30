@@ -26,7 +26,7 @@ export function toResponse(
   throw new Error("Unreachable code");
 }
 
-export const toResponseFnDecl = (name = "toResponse", densky = "$densky$") => `
+export const toResponseFnDecl = (name = "toResponse", densky = "$Densky$") => `
 function ${name} (
   req: ${densky}.HTTPRequest,
   response: ${densky}.HTTPResponse | Response | ${densky}.HTTPError | Error | void

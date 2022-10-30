@@ -6,14 +6,8 @@ export class StaticFiles {
 
   constructor(readonly folderPath: string) {}
 
-  normPath(filePath: string): string {
-    return pathMod.join(this.folderPath, filePath);
-  }
-
   async getFile(filePath: string): Promise<StaticFile> {
-    filePath = this.normPath(filePath);
-
-    if (this.cache.has(filePath)) {
+    if (!this.cache.has(filePath)) {
       const { ext } = pathMod.parse(filePath);
       // ext has a dot and we don't want it
       const extension = ext.slice(1);

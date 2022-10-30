@@ -13,6 +13,8 @@ import { httpWrite } from "./http/write.ts";
 import { wsDiscover } from "./ws/discover.ts";
 import { wsWrite } from "./ws/write.ts";
 import { format } from "./formatter.ts";
+import { staticDiscover } from "./static/discover.ts";
+import { staticWrite } from "./static/write.ts";
 
 export type { CompileOptions };
 
@@ -26,9 +28,11 @@ export async function compile(options: CompileOptions) {
 
   const httpRoutesTree = await httpDiscover(opts);
   const wsRoutesTree = await wsDiscover(opts);
+  const staticRoutesTree = await staticDiscover(opts);
 
   if (!httpRoutesTree) return;
   if (opts.wsPath && !wsRoutesTree) return;
+  if (opts.staticPath && !staticRoutesTree) return;
 
   log_info("Writing files");
 
@@ -43,9 +47,11 @@ export async function compile(options: CompileOptions) {
   // Write
   await httpWrite(httpRoutesTree, opts);
   if (wsRoutesTree) await wsWrite(wsRoutesTree, opts);
+  if (staticRoutesTree) await staticWrite(staticRoutesTree, opts);
 
   {
     const hasWs = !!opts.wsPath;
+    const hasStatic = !!opts.staticPath;
     const mainPath = path.join(opts.outDir, "main.ts");
     await fs.ensureFile(mainPath);
     const content =
@@ -53,16 +59,24 @@ export async function compile(options: CompileOptions) {
 import * as $densky$ from "densky";
 import httpHandler from "./http.main.ts";
 ${hasWs ? "import wsHandler from './ws.main.ts'" : ""}
+${hasStatic ? "import staticHandler from './static.main.ts'" : ""}
 
 export default async function requestHandler(request: Deno.RequestEvent, conn: Deno.Conn): Promise<Response> {
   const req = new $densky$.HTTPRequest(request);
 
   ${
+        hasStatic
+          ? `
+  const staticRes = await staticHandler(req);
+  if (staticRes) return staticRes;`
+          : ""
+      }
+
+  ${
         hasWs
           ? `
   const wsRes = await wsHandler(req);
-  if (wsRes) return wsRes;
-`
+  if (wsRes) return wsRes;`
           : ""
       }
 
