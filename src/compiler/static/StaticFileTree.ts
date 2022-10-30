@@ -1,3 +1,4 @@
+import { pathMod } from "../../deps.ts";
 import { StaticFiles } from "../../utils.ts";
 import { StaticFileNode } from "./StaticFileNode.ts";
 
@@ -6,7 +7,7 @@ export class StaticFileTree {
   readonly staticFiles: StaticFiles;
 
   constructor(readonly folderPath: string) {
-    this.staticFiles = new StaticFiles(folderPath);
+    this.staticFiles = new StaticFiles(pathMod.resolve(Deno.cwd(), folderPath));
   }
 
   /**

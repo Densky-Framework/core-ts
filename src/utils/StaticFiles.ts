@@ -4,7 +4,9 @@ import { getMimeType } from "./mime.ts";
 export class StaticFiles {
   readonly cache = new Map();
 
-  constructor(readonly folderPath: string) {}
+  constructor(readonly folderPath: string) {
+    this.folderPath = pathMod.resolve(Deno.cwd(), folderPath);
+  }
 
   normPath(filePath: string): string {
     return pathMod.resolve(this.folderPath, filePath);
@@ -19,7 +21,6 @@ export class StaticFiles {
       const extension = ext.slice(1);
       const mimetype = getMimeType(extension) || "text/plain";
 
-      console.log(filePath)
       const file = await Deno.readFile(filePath);
       const staticFile = new StaticFile(file, mimetype);
 

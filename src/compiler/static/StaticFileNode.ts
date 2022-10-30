@@ -1,3 +1,4 @@
+import { pathMod } from "../../deps.ts";
 import { StaticFile, StaticFiles } from "../../utils/StaticFiles.ts";
 
 export class StaticFileNode {
@@ -7,7 +8,9 @@ export class StaticFileNode {
     readonly urlPath: string,
     readonly filePath: string,
     readonly staticFiles: StaticFiles,
-  ) {}
+  ) {
+    this.filePath = pathMod.resolve(staticFiles.folderPath, filePath);
+  }
 
   async getStaticFile(): Promise<StaticFile> {
     if (!this.staticFile) {
