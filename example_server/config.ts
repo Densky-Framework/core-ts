@@ -5,5 +5,6 @@ export const compileOptions: CompileOptions = {
   wsPath: "src/ws",
   staticPath: "src/static",
   staticPrefix: "/static",
+  viewsPath: "src/views",
   verbose: true,
 };
