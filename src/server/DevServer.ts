@@ -5,29 +5,43 @@ import { BaseServer, BaseServerOptions } from "./BaseServer.ts";
 import { toResponse } from "../utils.ts";
 import { HttpRoutesTree } from "../compiler/http/HttpRoutesTree.ts";
 import { httpDiscover } from "../compiler/http/discover.ts";
+import {StaticFileTree} from "../compiler/static/StaticFileTree.ts";
+import {staticDiscover} from "../compiler/static/discover.ts";
 import { graphHttpToTerminal } from "../compiler/grapher/terminal.ts";
+import { CompileOptions } from "../compiler/types.ts";
+
+export type DevServerOptions = Omit<CompileOptions, "outDir" | "verbose">;
 
 export class DevServer extends BaseServer {
   routesTree!: HttpRoutesTree;
+  staticTree: StaticFileTree | null = null;
   controllersCache = new Map<string, IController>();
 
-  constructor(options: BaseServerOptions, readonly routesPath: string) {
+  constructor(options: BaseServerOptions, readonly devOptions: DevServerOptions) {
     super(options);
   }
 
   override async start(): Promise<void> {
     const tmpDir = await Deno.makeTempDir({ prefix: "densky-cache" });
-    const routesTree = await httpDiscover({
-      routesPath: this.routesPath,
+    const opts: Required<CompileOptions> = {
       wsPath: false,
       staticPath: false,
       staticPrefix: "/static",
+      ...this.devOptions,
       outDir: tmpDir,
       verbose: false,
-    }, false);
+    }
+
+    const routesTree = await httpDiscover(opts, false);
 
     if (!routesTree) throw new Error("Can't generate the routes tree");
     this.routesTree = routesTree;
+
+    const staticTree = await staticDiscover(opts);
+
+    if (staticTree) {
+      this.staticTree = staticTree
+    }
 
     console.log("Routes Tree:");
     graphHttpToTerminal(routesTree);
@@ -103,6 +117,16 @@ export class DevServer extends BaseServer {
    */
   async handleRequest(request: Deno.RequestEvent): Promise<Response> {
     const httpRequest = new HTTPRequest(request);
+
+    // Static Files Handler
+    StaticFilesHandler: {
+      if (!this.staticTree) break StaticFilesHandler;
+
+      const res = await this.staticTree.handleRequest(httpRequest.pathname);
+      if (res) return res
+    }
+
+    // Api Routes Handler
     const controllerTree = this.routesTree.handleRoute(
       httpRequest.pathname,
       httpRequest.params,
