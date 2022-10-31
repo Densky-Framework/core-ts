@@ -22,7 +22,7 @@ export async function staticDiscover(
     const urlPath = options.staticPrefix + "/" + relPath;
     staticFileTree.files.set(
       urlPath,
-      new StaticFileNode(urlPath, file.path, staticFileTree.staticFiles),
+      new StaticFileNode(urlPath, relPath, staticFileTree.staticFiles),
     );
   }
 
