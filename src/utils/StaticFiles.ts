@@ -17,6 +17,7 @@ export class StaticFiles {
     filePath = this.normPath(filePath);
 
     if (!this.cache.has(filePath)) {
+      console.log("[StaticFiles] Getting and caching '" + filePath + "'")
       const { ext } = pathMod.parse(filePath);
       // ext has a dot and we don't want it
       const extension = ext.slice(1);

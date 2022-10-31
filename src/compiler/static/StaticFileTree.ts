@@ -11,10 +11,6 @@ export class StaticFileTree {
     this.staticFiles = new StaticFiles(pathMod.resolve(Globals.cwd, folderPath));
   }
 
-  /**
-   * Handle a request in runtime.
-   * For `DevServer`.
-   */
   async handleRequest(urlPath: string): Promise<Response | null> {
     if (!this.files.has(urlPath)) return null;
 

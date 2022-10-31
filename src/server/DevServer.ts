@@ -95,6 +95,7 @@ export class DevServer extends BaseServer {
         // If it isn't cached, then recalculate middlewares for
         // prevent bugs in discover
         controllerTree.calculateMiddlewares();
+        console.log("[DevServer] Loading controller at " + controllerUrl)
         controllerMod = await import("file://" + controllerUrl);
       }
     } catch (e) {
