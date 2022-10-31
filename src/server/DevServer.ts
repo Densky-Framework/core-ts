@@ -1,8 +1,8 @@
 import { StatusCode } from "../common.ts";
-import { HTTPError, HTTPRequest } from "../http/index.ts";
+import { HTTPError, HTTPRequest, HTTPResponse } from "../http/index.ts";
 import { IController } from "../router/Controller.ts";
 import { BaseServer, BaseServerOptions } from "./BaseServer.ts";
-import { toResponse } from "../utils.ts";
+import { StaticFiles, toResponse } from "../utils.ts";
 import { HttpRoutesTree } from "../compiler/http/HttpRoutesTree.ts";
 import { httpDiscover } from "../compiler/http/discover.ts";
 import { StaticFileTree } from "../compiler/static/StaticFileTree.ts";
@@ -45,6 +45,10 @@ export class DevServer extends BaseServer {
 
     if (staticTree) {
       this.staticTree = staticTree;
+    }
+
+    if (opts.viewsPath) {
+      HTTPResponse.viewsTree = new StaticFiles(opts.viewsPath);
     }
 
     console.log("Routes Tree:");
@@ -91,7 +95,7 @@ export class DevServer extends BaseServer {
         // If it isn't cached, then recalculate middlewares for
         // prevent bugs in discover
         controllerTree.calculateMiddlewares();
-        controllerMod = await import(controllerUrl);
+        controllerMod = await import("file://" + controllerUrl);
       }
     } catch (e) {
       return HTTPError.fromError(e as Error).toResponse();
