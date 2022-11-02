@@ -41,6 +41,7 @@ export class DevServer extends BaseServer {
 
     if (!routesTree) throw new Error("Can't generate the routes tree");
     this.routesTree = routesTree;
+    Watcher.enabled = true;
     Watcher.setupRoot("routes", opts.routesPath);
 
     const staticTree = await staticDiscover(opts);

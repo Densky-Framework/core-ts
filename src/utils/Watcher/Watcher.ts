@@ -23,6 +23,8 @@ import { Globals } from "../../globals.ts";
  * watcher.stop();
  */
 export abstract class Watcher {
+  static enabled = false;
+
   /** Watching instance per root */
   static #watchInstances = new Map<string, Set<Watching>>();
 
@@ -82,6 +84,8 @@ export abstract class Watcher {
    * watcher.stop();
    */
   static watch(path: string): Watching {
+    if (!this.enabled) throw new Error("Watcher is disbled");
+
     // Extract rootName from format "ROOT_NAME/MY/PATH"
     // rootName: ROOT_NAME; path: MY/PATH
     const [rootName, ...pathParts] = path.split(pathMod.sep);
