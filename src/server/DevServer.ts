@@ -9,6 +9,7 @@ import { StaticFileTree } from "../compiler/static/StaticFileTree.ts";
 import { staticDiscover } from "../compiler/static/discover.ts";
 import { graphHttpToTerminal } from "../compiler/grapher/terminal.ts";
 import { CompileOptions } from "../compiler/types.ts";
+import { Watcher } from "../utils/Watcher/Watcher.ts";
 
 export type DevServerOptions = Omit<CompileOptions, "outDir" | "verbose">;
 
@@ -40,14 +41,17 @@ export class DevServer extends BaseServer {
 
     if (!routesTree) throw new Error("Can't generate the routes tree");
     this.routesTree = routesTree;
+    Watcher.setupRoot("routes", opts.routesPath);
 
     const staticTree = await staticDiscover(opts);
 
     if (staticTree) {
+      Watcher.setupRoot("static", opts.staticPath as string)
       this.staticTree = staticTree;
     }
 
     if (opts.viewsPath) {
+      Watcher.setupRoot("views", opts.viewsPath)
       HTTPResponse.viewsTree = new StaticFiles(opts.viewsPath);
     }
 
