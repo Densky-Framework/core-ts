@@ -10,6 +10,8 @@ import { staticDiscover } from "../compiler/static/discover.ts";
 import { graphHttpToTerminal } from "../compiler/grapher/terminal.ts";
 import { CompileOptions } from "../compiler/types.ts";
 import { Watcher } from "../utils/Watcher/Watcher.ts";
+import { fs, pathMod } from "../deps.ts";
+import { Globals } from "../globals.ts";
 
 export type DevServerOptions = Omit<CompileOptions, "outDir" | "verbose">;
 
@@ -59,16 +61,65 @@ export class DevServer extends BaseServer {
     await super.start();
   }
 
+  async #setupWatcher(
+    name: string,
+    path: string,
+    exec: (event: Deno.FsEvent) => unknown,
+  ) {
+    Watcher.setupRoot(name, path);
+
+    const trackingFiles = new Set<string>();
+
+    for await (
+      const file of fs.walk(pathMod.resolve(Globals.cwd, path), {
+        includeDirs: false,
+      })
+    ) {
+      trackingFiles.add(file.path);
+    }
+
+    Watcher.watch(name + "/")((ev) => {
+      // Only reload from here if are creating or removing file
+      switch (ev.kind) {
+        case "create": {
+          const alreadyExists = ev.paths.every((path) => {
+            const has = trackingFiles.has(path);
+            // Prevent unnecessary re-loop
+            if (!has) trackingFiles.add(path);
+            return has;
+          });
+
+          if (alreadyExists) break;
+
+          exec(ev);
+          break;
+        }
+
+        case "remove": {
+          const notExists = ev.paths.every((path) => {
+            const has = trackingFiles.has(path);
+            // Prevent unnecessary re-loop
+            if (has) trackingFiles.delete(path);
+            return !has;
+          });
+
+          if (notExists) break;
+
+          exec(ev);
+          break;
+        }
+
+        default:
+          break;
+      }
+    });
+  }
+
   #setupWatchers(opts: Required<CompileOptions>) {
     Watcher.enabled = true;
 
     // Routes
-    Watcher.setupRoot("routes", opts.routesPath);
-
-    Watcher.watch("routes/")(async (ev) => {
-      // Only reload from here if are creating or removing file
-      if (ev.kind !== "create" && ev.kind !== "remove") return;
-
+    this.#setupWatcher("routes", opts.routesPath, async () => {
       console.log("DENSKY New file detected. Rediscovering routes");
 
       const routesTree = await httpDiscover(opts, false);
@@ -76,36 +127,26 @@ export class DevServer extends BaseServer {
       this.routesTree = routesTree;
 
       console.clear();
-      console.log("DENSKY Routes discovered. New Tree:")
+      console.log("DENSKY Routes discovered. New Tree:");
       graphHttpToTerminal(routesTree);
     });
 
     // Static
     if (opts.staticPath) {
-      Watcher.setupRoot("static", opts.staticPath);
-
-      Watcher.watch("static/")(async (ev) => {
-        // Only reload from here if are creating or removing file
-        if (ev.kind !== "create" && ev.kind !== "remove") return;
-        console.log(ev)
-
+      this.#setupWatcher("static", opts.staticPath, async () => {
         console.log("DENSKY New file detected. Rediscovering static");
 
         const staticTree = await staticDiscover(opts);
         if (!staticTree) throw new Error("Can't generate the static tree");
         this.staticTree = staticTree;
 
-        console.log("DENSKY Static discovered")
+        console.log("DENSKY Static discovered");
       });
     }
-      
+
     // Views
     if (opts.viewsPath) {
-      Watcher.setupRoot("views", opts.viewsPath)
-      Watcher.watch("views/")((ev) => {
-        // Only reload from here if are creating or removing file
-        if (ev.kind !== "create" && ev.kind !== "remove") return;
-
+      this.#setupWatcher("views", opts.viewsPath, () => {
         HTTPResponse.viewsTree = new StaticFiles(opts.viewsPath as string);
       });
     }
@@ -149,7 +190,7 @@ export class DevServer extends BaseServer {
         // If it isn't cached, then recalculate middlewares for
         // prevent bugs in discover
         controllerTree.calculateMiddlewares();
-        console.log("[DevServer] Loading controller at " + controllerUrl)
+        console.log("[DevServer] Loading controller at " + controllerUrl);
         controllerMod = await import("file://" + controllerUrl);
       }
     } catch (e) {
