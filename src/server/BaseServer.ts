@@ -1,5 +1,7 @@
 import type { Promisable } from "../common.ts";
 import { HTTPError } from "../http/HTTPError.ts";
+import version from "../../version.ts"
+import { chalk } from "../deps.ts";
 
 export type BaseServerOptions = Parameters<typeof Deno.listen>[0] & {
   verbose?: boolean;
@@ -19,6 +21,7 @@ export abstract class BaseServer {
   readonly options: Readonly<Required<BaseServerOptions>>;
 
   constructor(options: BaseServerOptions) {
+    const startTime = Date.now();
     this.server = Deno.listen(options);
 
     this.options = options = Object.assign<
@@ -27,8 +30,10 @@ export abstract class BaseServer {
     >(defaultOptions, options);
 
     if (options.verbose) {
-      console.log(
-        `[SERVER] Initialized at ${options.hostname}:${options.port}`,
+      console.log(chalk`
+  ${chalk.cyan(chalk.bold`Densky ` + version)}  ${chalk.dim`ready in ${chalk.bold(Date.now() - startTime)} ms`}
+    {green ➧} {bold URL:}   {cyan http://${options.hostname}:{bold ${options.port}}}
+`,
       );
     }
   }
