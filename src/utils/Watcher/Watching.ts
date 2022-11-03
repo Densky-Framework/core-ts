@@ -39,18 +39,21 @@ export class Watching extends Function {
 
   #handleEvent(event: Deno.FsEvent): Deno.FsEvent | null {
     const handledPaths = event.paths.filter((path) =>
-      path.startsWith(this.path)
+      path.startsWith(this.path) 
+      // Nvim temp files
+      && !path.endsWith("~") 
+      && !path.endsWith("4913") 
+      // Nano temp files
+      && !path.endsWith(".swp")
     );
 
     if (handledPaths.length === 0) return null;
 
-    const retEvent: Deno.FsEvent = {
+    return {
       kind: event.kind,
       flag: event.flag,
       paths: handledPaths,
     };
-
-    return retEvent;
   }
 
   subscribe(callback: WatchingCallback): () => void {

@@ -41,18 +41,15 @@ export class DevServer extends BaseServer {
 
     if (!routesTree) throw new Error("Can't generate the routes tree");
     this.routesTree = routesTree;
-    Watcher.enabled = true;
-    Watcher.setupRoot("routes", opts.routesPath);
+    this.#setupWatchers(opts);
 
     const staticTree = await staticDiscover(opts);
 
     if (staticTree) {
-      Watcher.setupRoot("static", opts.staticPath as string)
       this.staticTree = staticTree;
     }
 
     if (opts.viewsPath) {
-      Watcher.setupRoot("views", opts.viewsPath)
       HTTPResponse.viewsTree = new StaticFiles(opts.viewsPath);
     }
 
@@ -60,6 +57,58 @@ export class DevServer extends BaseServer {
     graphHttpToTerminal(routesTree);
 
     await super.start();
+  }
+
+  #setupWatchers(opts: Required<CompileOptions>) {
+    Watcher.enabled = true;
+
+    // Routes
+    Watcher.setupRoot("routes", opts.routesPath);
+
+    Watcher.watch("routes/")(async (ev) => {
+      // Only reload from here if are creating or removing file
+      if (ev.kind !== "create" && ev.kind !== "remove") return;
+
+      console.log("DENSKY New file detected. Rediscovering routes");
+
+      const routesTree = await httpDiscover(opts, false);
+      if (!routesTree) throw new Error("Can't generate the routes tree");
+      this.routesTree = routesTree;
+
+      console.clear();
+      console.log("DENSKY Routes discovered. New Tree:")
+      graphHttpToTerminal(routesTree);
+    });
+
+    // Static
+    if (opts.staticPath) {
+      Watcher.setupRoot("static", opts.staticPath);
+
+      Watcher.watch("static/")(async (ev) => {
+        // Only reload from here if are creating or removing file
+        if (ev.kind !== "create" && ev.kind !== "remove") return;
+        console.log(ev)
+
+        console.log("DENSKY New file detected. Rediscovering static");
+
+        const staticTree = await staticDiscover(opts);
+        if (!staticTree) throw new Error("Can't generate the static tree");
+        this.staticTree = staticTree;
+
+        console.log("DENSKY Static discovered")
+      });
+    }
+      
+    // Views
+    if (opts.viewsPath) {
+      Watcher.setupRoot("views", opts.viewsPath)
+      Watcher.watch("views/")((ev) => {
+        // Only reload from here if are creating or removing file
+        if (ev.kind !== "create" && ev.kind !== "remove") return;
+
+        HTTPResponse.viewsTree = new StaticFiles(opts.viewsPath as string);
+      });
+    }
   }
 
   async runMethod(
