@@ -10,8 +10,9 @@ import { staticDiscover } from "../compiler/static/discover.ts";
 import { graphHttpToTerminal } from "../compiler/grapher/terminal.ts";
 import { CompileOptions } from "../compiler/types.ts";
 import { Watcher } from "../utils/Watcher/Watcher.ts";
-import { fs, pathMod } from "../deps.ts";
+import { chalk, fs, pathMod } from "../deps.ts";
 import { Globals } from "../globals.ts";
+import { WatchEvent } from "../utils/Watcher/WatchEvent.ts";
 
 export type DevServerOptions = Omit<CompileOptions, "outDir" | "verbose">;
 
@@ -64,54 +65,34 @@ export class DevServer extends BaseServer {
   async #setupWatcher(
     name: string,
     path: string,
-    exec: (event: Deno.FsEvent) => unknown,
+    exec: (event: WatchEvent) => unknown,
   ) {
     Watcher.setupRoot(name, path);
 
-    const trackingFiles = new Set<string>();
+    const globalPath = pathMod.resolve(Globals.cwd, path);
 
     for await (
-      const file of fs.walk(pathMod.resolve(Globals.cwd, path), {
+      const file of fs.walk(globalPath, {
         includeDirs: false,
       })
     ) {
-      trackingFiles.add(file.path);
+      WatchEvent.trackingFiles.add(file.path);
     }
 
-    Watcher.watch(name + "/")((ev) => {
-      // Only reload from here if are creating or removing file
-      switch (ev.kind) {
-        case "create": {
-          const alreadyExists = ev.paths.every((path) => {
-            const has = trackingFiles.has(path);
-            // Prevent unnecessary re-loop
-            if (!has) trackingFiles.add(path);
-            return has;
-          });
+    Watcher.watch(name + "/")(async (ev) => {
+      // Just access to 'create' and 'remove' kinds
+      // for re-discover
+      if (ev.kind === "modify") return;
 
-          if (alreadyExists) break;
+      // Execute
+      console.clear();
+      await exec(ev);
+      console.log(
+        chalk`{cyan  {bold  DENSKY} ${name.toUpperCase()} {green ${ev.kind}} ${
+          pathMod.relative(globalPath, ev.path)
+        }}`,
+      );
 
-          exec(ev);
-          break;
-        }
-
-        case "remove": {
-          const notExists = ev.paths.every((path) => {
-            const has = trackingFiles.has(path);
-            // Prevent unnecessary re-loop
-            if (has) trackingFiles.delete(path);
-            return !has;
-          });
-
-          if (notExists) break;
-
-          exec(ev);
-          break;
-        }
-
-        default:
-          break;
-      }
     });
   }
 
@@ -120,27 +101,19 @@ export class DevServer extends BaseServer {
 
     // Routes
     this.#setupWatcher("routes", opts.routesPath, async () => {
-      console.log("DENSKY New file detected. Rediscovering routes");
-
       const routesTree = await httpDiscover(opts, false);
       if (!routesTree) throw new Error("Can't generate the routes tree");
       this.routesTree = routesTree;
 
-      console.clear();
-      console.log("DENSKY Routes discovered. New Tree:");
-      graphHttpToTerminal(routesTree);
+      graphHttpToTerminal(this.routesTree);
     });
 
     // Static
     if (opts.staticPath) {
       this.#setupWatcher("static", opts.staticPath, async () => {
-        console.log("DENSKY New file detected. Rediscovering static");
-
         const staticTree = await staticDiscover(opts);
         if (!staticTree) throw new Error("Can't generate the static tree");
         this.staticTree = staticTree;
-
-        console.log("DENSKY Static discovered");
       });
     }
 
@@ -192,6 +165,20 @@ export class DevServer extends BaseServer {
         controllerTree.calculateMiddlewares();
         console.log("[DevServer] Loading controller at " + controllerUrl);
         controllerMod = await import("file://" + controllerUrl);
+
+        // Watch controller
+        const globalRoutesPath = pathMod.resolve(Globals.cwd, this.devOptions.routesPath);
+        const relPath = pathMod.relative(globalRoutesPath, controllerUrl)
+
+        // TODO: When editing dispatch 'create', 'access', and 'modify' events, 
+        // try to fix it
+        console.log("watching ", relPath)
+        const watcher = Watcher.watch("routes/" + relPath);
+        const callback = (event: Deno.FsEvent) => {
+          console.log(event);
+        }
+
+        watcher(callback);
       }
     } catch (e) {
       return HTTPError.fromError(e as Error).toResponse();
