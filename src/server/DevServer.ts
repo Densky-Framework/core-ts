@@ -119,7 +119,10 @@ export class DevServer extends BaseServer {
     // Views
     if (opts.viewsPath) {
       this.#setupWatcher("views", opts.viewsPath, () => {
-        HTTPResponse.viewsTree = new StaticFiles(opts.viewsPath as string, "views");
+        HTTPResponse.viewsTree = new StaticFiles(
+          opts.viewsPath as string,
+          "views",
+        );
       });
     }
   }
