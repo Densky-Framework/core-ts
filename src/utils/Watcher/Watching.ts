@@ -1,4 +1,6 @@
-export type WatchingCallback = (event: Deno.FsEvent) => unknown;
+import { WatchEvent } from "./WatchEvent.ts";
+
+export type WatchingCallback = (event: WatchEvent) => unknown;
 
 export interface Watching {
   (callback: WatchingCallback): () => void;
@@ -28,17 +30,18 @@ export class Watching extends Function {
     const event = await iterator.next();
     if (event.done) return;
 
-    const handledEvent = this.#handleEvent(event.value);
+    const handledEvents = this.#handleEvent(event.value);
 
-    if (handledEvent) {
-      this.callbacks.forEach((callback) => callback(handledEvent));
+    if (handledEvents) {
+      handledEvents.forEach(handledEvent => 
+      this.callbacks.forEach((callback) => callback(handledEvent)));
     }
 
     this.#handleLoop(iterator);
   }
 
-  #handleEvent(event: Deno.FsEvent): Deno.FsEvent | null {
-    const handledPaths = event.paths.filter((path) =>
+  #handleEvent(event: Deno.FsEvent): WatchEvent[] | null {
+     const handledPaths = event.paths.filter((path) =>
       path.startsWith(this.path) 
       // Nvim temp files
       && !path.endsWith("~") 
@@ -49,11 +52,11 @@ export class Watching extends Function {
 
     if (handledPaths.length === 0) return null;
 
-    return {
-      kind: event.kind,
-      flag: event.flag,
-      paths: handledPaths,
-    };
+    const events = WatchEvent.getWatchEvents(event);
+
+    if (events.length === 0) return null;
+
+    return events;
   }
 
   subscribe(callback: WatchingCallback): () => void {
