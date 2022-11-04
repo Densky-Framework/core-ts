@@ -53,7 +53,7 @@ export class DevServer extends BaseServer {
     }
 
     if (opts.viewsPath) {
-      HTTPResponse.viewsTree = new StaticFiles(opts.viewsPath);
+      HTTPResponse.viewsTree = new StaticFiles(opts.viewsPath, "views");
     }
 
     console.log("Routes Tree:");
@@ -119,7 +119,7 @@ export class DevServer extends BaseServer {
     // Views
     if (opts.viewsPath) {
       this.#setupWatcher("views", opts.viewsPath, () => {
-        HTTPResponse.viewsTree = new StaticFiles(opts.viewsPath as string);
+        HTTPResponse.viewsTree = new StaticFiles(opts.viewsPath as string, "views");
       });
     }
   }

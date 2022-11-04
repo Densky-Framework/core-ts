@@ -10,6 +10,7 @@ export class StaticFileTree {
   constructor(readonly folderPath: string) {
     this.staticFiles = new StaticFiles(
       pathMod.resolve(Globals.cwd, folderPath),
+      "static"
     );
   }
 
