@@ -1,4 +1,4 @@
-import { bdd } from "../test_deps.ts";
+import { bdd } from "../../test_deps.ts";
 import { getMimeType } from "./mime.ts";
 const expect = chai.expect;
 

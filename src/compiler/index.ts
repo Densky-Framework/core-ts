@@ -15,7 +15,7 @@ import { wsWrite } from "./ws/write.ts";
 import { format } from "./formatter.ts";
 import { staticDiscover } from "./static/discover.ts";
 import { staticWrite } from "./static/write.ts";
-import {Globals} from "../globals.ts";
+import { Globals } from "../globals.ts";
 
 export type { CompileOptions };
 
@@ -66,7 +66,7 @@ ${
         opts.viewsPath
           ? `$Densky$.HTTPResponse.viewsTree = new $Densky$.StaticFiles("${
             pathMod.relative(Globals.cwd, opts.viewsPath)
-          }")`
+          }", "views")`
           : ""
       }
 
@@ -136,7 +136,9 @@ function normalize_options(options: CompileOptions): Required<CompileOptions> {
   if (opts.staticPath) {
     opts.staticPath = path.resolve(Globals.cwd, opts.staticPath);
   }
-  if (opts.viewsPath) opts.viewsPath = path.resolve(Globals.cwd, opts.viewsPath);
+  if (opts.viewsPath) {
+    opts.viewsPath = path.resolve(Globals.cwd, opts.viewsPath);
+  }
 
   log_info = makeLog_info(opts.verbose);
   log_success_v = makeLog_success_v(opts.verbose);

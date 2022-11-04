@@ -1,7 +1,7 @@
 import { HttpRouteHandler } from "./HttpRouteHandler.ts";
 import { chalk, path } from "../../deps.ts";
 import { HTTPMethodStr } from "../../common.ts";
-import {Globals} from "../../globals.ts";
+import { Globals } from "../../globals.ts";
 
 /** @internal */
 export const errors = {

@@ -1,20 +1,19 @@
 import { pathMod } from "../../deps.ts";
 import { StaticFiles } from "../../utils.ts";
 import { StaticFileNode } from "./StaticFileNode.ts";
-import {Globals} from "../../globals.ts";
+import { Globals } from "../../globals.ts";
 
 export class StaticFileTree {
   readonly files = new Map<string, StaticFileNode>();
   readonly staticFiles: StaticFiles;
 
   constructor(readonly folderPath: string) {
-    this.staticFiles = new StaticFiles(pathMod.resolve(Globals.cwd, folderPath));
+    this.staticFiles = new StaticFiles(
+      pathMod.resolve(Globals.cwd, folderPath),
+      "static",
+    );
   }
 
-  /**
-   * Handle a request in runtime.
-   * For `DevServer`.
-   */
   async handleRequest(urlPath: string): Promise<Response | null> {
     if (!this.files.has(urlPath)) return null;
 

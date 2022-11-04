@@ -1,5 +1,4 @@
 import { fs, pathPosix } from "../../deps.ts";
-import { StaticFiles } from "../../utils/StaticFiles.ts";
 import { CompileOptions } from "../index.ts";
 import { StaticFileNode } from "./StaticFileNode.ts";
 import { StaticFileTree } from "./StaticFileTree.ts";
@@ -11,7 +10,6 @@ export async function staticDiscover(
 
   const folderPath = options.staticPath;
   const staticFileTree = new StaticFileTree(folderPath);
-  const staticFiles = new StaticFiles(folderPath);
 
   const files = fs.walk(folderPath, {
     includeDirs: false,
@@ -24,7 +22,7 @@ export async function staticDiscover(
     const urlPath = options.staticPrefix + "/" + relPath;
     staticFileTree.files.set(
       urlPath,
-      new StaticFileNode(urlPath, file.path, staticFiles),
+      new StaticFileNode(urlPath, relPath, staticFileTree.staticFiles),
     );
   }
 

@@ -13,10 +13,6 @@ export class StaticFileNode {
   }
 
   async getStaticFile(): Promise<StaticFile> {
-    if (!this.staticFile) {
-      this.staticFile = await this.staticFiles.getFile(this.filePath);
-    }
-
-    return this.staticFile;
+    return await this.staticFiles.getFile(this.filePath);
   }
 }

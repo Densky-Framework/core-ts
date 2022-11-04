@@ -3,7 +3,10 @@ import { HttpRoutesTree } from "../http/HttpRoutesTree.ts";
 import { WsRoutesRoot } from "../ws/WsRoutesRoot.ts";
 import { WsRoutesTree } from "../ws/WsRoutesTree.ts";
 
-export function graphHttpToTerminal(route: HttpRoutesTree, prefix = ""): void {
+export function graphHttpToTerminal(
+  route: HttpRoutesTree,
+  prefix = "  ",
+): void {
   let out = prefix;
 
   out += route.urlPath === "/"
@@ -11,11 +14,13 @@ export function graphHttpToTerminal(route: HttpRoutesTree, prefix = ""): void {
     : route.routeFile
     ? "▲ "
     : "△ ";
-  out +=
+  out += (route.routeFile ? chalk.bold : chalk.reset)(
     // Remove parent path prefix, except at index(/)
     !route.parent || route.parent.urlPath === "/"
       ? route.urlPath
-      : route.urlPath.replace(route.parent.urlPath, "");
+      : route.urlPath.replace(route.parent.urlPath, ""),
+  );
+
   out += route.routeFile && route.routeFile.handlers.size > 0
     ? chalk.dim(
       " (" + Array.from(route.routeFile.handlers.keys()).join(", ") + ")",
