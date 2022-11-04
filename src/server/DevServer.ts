@@ -2,7 +2,7 @@ import { StatusCode } from "../common.ts";
 import { HTTPError, HTTPRequest, HTTPResponse } from "../http/index.ts";
 import { IController } from "../router/Controller.ts";
 import { BaseServer, BaseServerOptions } from "./BaseServer.ts";
-import { StaticFiles, toResponse } from "../utils.ts";
+import { StaticFiles, timestamp, toResponse } from "../utils.ts";
 import { HttpRoutesTree } from "../compiler/http/HttpRoutesTree.ts";
 import { httpDiscover } from "../compiler/http/discover.ts";
 import { StaticFileTree } from "../compiler/static/StaticFileTree.ts";
@@ -88,7 +88,7 @@ export class DevServer extends BaseServer {
       console.clear();
       await exec(ev);
       console.log(
-        chalk`{cyan  {bold  DENSKY} ${name.toUpperCase()} {green ${ev.kind}} ${
+        chalk`{dim  ${timestamp()}} {cyan {bold DENSKY} ${name.toUpperCase()} {green ${ev.kind}} ${
           pathMod.relative(globalPath, ev.path)
         }}`,
       );
@@ -159,25 +159,51 @@ export class DevServer extends BaseServer {
       if (this.controllersCache.has(controllerUrl)) {
         controllerMod = this.controllersCache.get(controllerUrl);
       } else {
-        // If it isn't cached, then recalculate middlewares for
-        // prevent bugs in discover
-        controllerTree.calculateMiddlewares();
-        console.log("[DevServer] Loading controller at " + controllerUrl);
-        controllerMod = await import("file://" + controllerUrl);
-
-        // Watch controller
         const globalRoutesPath = pathMod.resolve(
           Globals.cwd,
           this.devOptions.routesPath,
         );
         const relPath = pathMod.relative(globalRoutesPath, controllerUrl);
 
-        // TODO: When editing dispatch 'create', 'access', and 'modify' events,
-        // try to fix it
-        console.log("watching ", relPath);
+        // If it isn't cached, then recalculate middlewares for
+        // prevent bugs in discover
+        controllerTree.calculateMiddlewares();
+        console.log(
+          chalk`{dim  ${timestamp()}} {cyan {bold DENSKY} Loading controller} ${relPath}`,
+        );
+        // The '?k=...' is for prevent Deno import caching
+        controllerMod = await import(
+          "file://" + controllerUrl + "?k=" + (Math.random() * 1e7 | 0)
+        );
+        this.controllersCache.set(controllerUrl, controllerMod);
+
+        // Watch controller
         const watcher = Watcher.watch("routes/" + relPath);
-        const callback = (event: WatchEvent) => {
-          console.log(event);
+        const callback = async (event: WatchEvent) => {
+          if (event.kind !== "modify") return;
+          // Don't watch until next call
+          watcher.unsubscribe(callback);
+
+          console.log(
+            chalk`{dim  ${timestamp()}} {cyan {bold DENSKY} ROUTES {green ${event.kind}} ${relPath}}`,
+          );
+
+          // Reload all cache
+          this.controllersCache.delete(controllerUrl);
+          if (controllerTree.routeFile) {
+            try {
+              const newContent = await Deno.readTextFile(controllerUrl);
+
+              controllerTree.routeFile.setFileContent(newContent);
+            } catch (e) {
+              if (!(e instanceof Error)) throw e;
+
+              console.log(
+                chalk`{dim  ${timestamp()}} {cyan {bold DENSKY} Error parsing content: }` +
+                  e.message,
+              );
+            }
+          }
         };
 
         watcher(callback);
@@ -228,7 +254,6 @@ export class DevServer extends BaseServer {
 
     {
       const _ = await this.getController(controllerTree);
-
       if (_ instanceof Response) return _;
 
       controller = _;
