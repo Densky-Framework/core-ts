@@ -23,7 +23,7 @@ function createMockWatcher() {
 
     close() {
       closed = true;
-      this.execute({ paths: [], kind: "any" });
+      this.execute({ paths: [], kind: "create" });
     },
 
     rid: 0,
@@ -48,10 +48,10 @@ bdd.describe("Watcher => Watching", () => {
     ) {
       instance((ev) => {
         calledTimes++;
-        expect(ev.paths).to.deep.eq(expected);
+        expect(ev.path).to.eq(expected[0]);
       });
 
-      watcher.execute({ paths: input, kind: "any" });
+      watcher.execute({ paths: input, kind: "create" });
       // Wait for next tick, the callback must be called
       await new Promise((res) => setTimeout(res, 1));
 

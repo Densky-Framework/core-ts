@@ -92,7 +92,6 @@ export class DevServer extends BaseServer {
           pathMod.relative(globalPath, ev.path)
         }}`,
       );
-
     });
   }
 
@@ -167,16 +166,19 @@ export class DevServer extends BaseServer {
         controllerMod = await import("file://" + controllerUrl);
 
         // Watch controller
-        const globalRoutesPath = pathMod.resolve(Globals.cwd, this.devOptions.routesPath);
-        const relPath = pathMod.relative(globalRoutesPath, controllerUrl)
+        const globalRoutesPath = pathMod.resolve(
+          Globals.cwd,
+          this.devOptions.routesPath,
+        );
+        const relPath = pathMod.relative(globalRoutesPath, controllerUrl);
 
-        // TODO: When editing dispatch 'create', 'access', and 'modify' events, 
+        // TODO: When editing dispatch 'create', 'access', and 'modify' events,
         // try to fix it
-        console.log("watching ", relPath)
+        console.log("watching ", relPath);
         const watcher = Watcher.watch("routes/" + relPath);
-        const callback = (event: Deno.FsEvent) => {
+        const callback = (event: WatchEvent) => {
           console.log(event);
-        }
+        };
 
         watcher(callback);
       }

@@ -2,7 +2,7 @@ import { fs, pathMod } from "../../deps.ts";
 import { CompileOptions } from "../types.ts";
 import { format } from "../formatter.ts";
 import { StaticFileTree } from "./StaticFileTree.ts";
-import {Globals} from "../../globals.ts";
+import { Globals } from "../../globals.ts";
 
 export async function staticWrite(
   tree: StaticFileTree,

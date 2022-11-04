@@ -32,10 +32,11 @@ export abstract class BaseServer {
     if (options.verbose) {
       const startTime = Date.now() - Globals._startTime;
       console.log(chalk`
-  ${chalk.cyan(chalk.bold`Densky ` + version)}  ${chalk.dim`ready in ${chalk.bold(startTime)} ms`}
+  ${chalk.cyan(chalk.bold`Densky ` + version)}  ${chalk.dim`ready in ${
+        chalk.bold(startTime)
+      } ms`}
     {green ➧} {bold URL:}   {cyan http://${options.hostname}:{bold ${options.port}}}
-`,
-      );
+`);
     }
   }
 

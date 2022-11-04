@@ -33,26 +33,30 @@ export class Watching extends Function {
     const handledEvents = this.#handleEvent(event.value);
 
     if (handledEvents) {
-      handledEvents.forEach(handledEvent => 
-      this.callbacks.forEach((callback) => callback(handledEvent)));
+      handledEvents.forEach((handledEvent) =>
+        this.callbacks.forEach((callback) => callback(handledEvent))
+      );
     }
 
     this.#handleLoop(iterator);
   }
 
   #handleEvent(event: Deno.FsEvent): WatchEvent[] | null {
-     const handledPaths = event.paths.filter((path) =>
-      path.startsWith(this.path) 
+    const handledPaths = event.paths.filter((path) =>
+      path.startsWith(this.path) &&
       // Nvim temp files
-      && !path.endsWith("~") 
-      && !path.endsWith("4913") 
+      !path.endsWith("~") &&
+      !path.endsWith("4913") &&
       // Nano temp files
-      && !path.endsWith(".swp")
+      !path.endsWith(".swp")
     );
 
     if (handledPaths.length === 0) return null;
 
-    const events = WatchEvent.getWatchEvents(event);
+    const events = WatchEvent.getWatchEvents({
+      kind: event.kind,
+      paths: handledPaths
+    });
 
     if (events.length === 0) return null;
 

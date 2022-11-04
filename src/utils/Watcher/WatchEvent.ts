@@ -27,7 +27,7 @@ export class WatchEvent {
           events.push(new WatchEvent(raw, "create", path));
         }
       }
-    } else  if (raw.kind === "remove"){
+    } else if (raw.kind === "remove") {
       for (const path of raw.paths) {
         const has = this.trackingFiles.has(path);
 
@@ -40,7 +40,9 @@ export class WatchEvent {
       }
     } else {
       // If it's modify, just transform events
-      events.push(...(raw.paths.map(path => new WatchEvent(raw, "modify", path))));
+      events.push(
+        ...(raw.paths.map((path) => new WatchEvent(raw, "modify", path))),
+      );
     }
 
     return events;
