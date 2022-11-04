@@ -9,6 +9,10 @@ import { StaticFileTree } from "../compiler/static/StaticFileTree.ts";
 import { staticDiscover } from "../compiler/static/discover.ts";
 import { graphHttpToTerminal } from "../compiler/grapher/terminal.ts";
 import { CompileOptions } from "../compiler/types.ts";
+import { Watcher } from "../utils/Watcher/Watcher.ts";
+import { chalk, fs, pathMod } from "../deps.ts";
+import { Globals } from "../globals.ts";
+import { WatchEvent } from "../utils/Watcher/WatchEvent.ts";
 
 export type DevServerOptions = Omit<CompileOptions, "outDir" | "verbose">;
 
@@ -40,6 +44,7 @@ export class DevServer extends BaseServer {
 
     if (!routesTree) throw new Error("Can't generate the routes tree");
     this.routesTree = routesTree;
+    this.#setupWatchers(opts);
 
     const staticTree = await staticDiscover(opts);
 
@@ -55,6 +60,69 @@ export class DevServer extends BaseServer {
     graphHttpToTerminal(routesTree);
 
     await super.start();
+  }
+
+  async #setupWatcher(
+    name: string,
+    path: string,
+    exec: (event: WatchEvent) => unknown,
+  ) {
+    Watcher.setupRoot(name, path);
+
+    const globalPath = pathMod.resolve(Globals.cwd, path);
+
+    for await (
+      const file of fs.walk(globalPath, {
+        includeDirs: false,
+      })
+    ) {
+      WatchEvent.trackingFiles.add(file.path);
+    }
+
+    Watcher.watch(name + "/")(async (ev) => {
+      // Just access to 'create' and 'remove' kinds
+      // for re-discover
+      if (ev.kind === "modify") return;
+
+      // Execute
+      console.clear();
+      await exec(ev);
+      console.log(
+        chalk`{cyan  {bold  DENSKY} ${name.toUpperCase()} {green ${ev.kind}} ${
+          pathMod.relative(globalPath, ev.path)
+        }}`,
+      );
+
+    });
+  }
+
+  #setupWatchers(opts: Required<CompileOptions>) {
+    Watcher.enabled = true;
+
+    // Routes
+    this.#setupWatcher("routes", opts.routesPath, async () => {
+      const routesTree = await httpDiscover(opts, false);
+      if (!routesTree) throw new Error("Can't generate the routes tree");
+      this.routesTree = routesTree;
+
+      graphHttpToTerminal(this.routesTree);
+    });
+
+    // Static
+    if (opts.staticPath) {
+      this.#setupWatcher("static", opts.staticPath, async () => {
+        const staticTree = await staticDiscover(opts);
+        if (!staticTree) throw new Error("Can't generate the static tree");
+        this.staticTree = staticTree;
+      });
+    }
+
+    // Views
+    if (opts.viewsPath) {
+      this.#setupWatcher("views", opts.viewsPath, () => {
+        HTTPResponse.viewsTree = new StaticFiles(opts.viewsPath as string);
+      });
+    }
   }
 
   async runMethod(
@@ -95,8 +163,22 @@ export class DevServer extends BaseServer {
         // If it isn't cached, then recalculate middlewares for
         // prevent bugs in discover
         controllerTree.calculateMiddlewares();
-        console.log("[DevServer] Loading controller at " + controllerUrl)
+        console.log("[DevServer] Loading controller at " + controllerUrl);
         controllerMod = await import("file://" + controllerUrl);
+
+        // Watch controller
+        const globalRoutesPath = pathMod.resolve(Globals.cwd, this.devOptions.routesPath);
+        const relPath = pathMod.relative(globalRoutesPath, controllerUrl)
+
+        // TODO: When editing dispatch 'create', 'access', and 'modify' events, 
+        // try to fix it
+        console.log("watching ", relPath)
+        const watcher = Watcher.watch("routes/" + relPath);
+        const callback = (event: Deno.FsEvent) => {
+          console.log(event);
+        }
+
+        watcher(callback);
       }
     } catch (e) {
       return HTTPError.fromError(e as Error).toResponse();
