@@ -66,7 +66,7 @@ ${
         opts.viewsPath
           ? `$Densky$.HTTPResponse.viewsTree = new $Densky$.StaticFiles("${
             pathMod.relative(Globals.cwd, opts.viewsPath)
-          }")`
+          }", "views")`
           : ""
       }
 

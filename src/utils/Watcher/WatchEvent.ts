@@ -12,7 +12,9 @@ export class WatchEvent {
   ) {}
 
   static getWatchEvents(raw: Deno.FsEvent): WatchEvent[] {
-    if (!handledKinds.includes(raw.kind)) return [];
+    if (!handledKinds.includes(raw.kind)) {
+      return [];
+    }
 
     const events: WatchEvent[] = [];
 

@@ -55,7 +55,7 @@ export class Watching extends Function {
 
     const events = WatchEvent.getWatchEvents({
       kind: event.kind,
-      paths: handledPaths
+      paths: handledPaths,
     });
 
     if (events.length === 0) return null;
