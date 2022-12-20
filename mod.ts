@@ -7,5 +7,6 @@ export * from "./src/globals.ts";
 export { StaticFiles } from "./src/utils.ts";
 export { StaticFileTree } from "./src/compiler/static/StaticFileTree.ts";
 export { StaticFileNode } from "./src/compiler/static/StaticFileNode.ts";
+export { DenskyHtmlRuntime } from "./src/dynamic-html.ts"
 
 export * as version from "./version.ts"
