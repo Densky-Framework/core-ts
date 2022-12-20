@@ -72,7 +72,7 @@ export function generateDynamicHtml(
     output,
     `// deno-lint-ignore-file
   /** Densky/dynamic-html **/
-  import { DenskyHtmlRuntime as __runtime } from "densky";
+  import { DenskyHtmlRuntime as __runtime__ } from "densky";
   ${imports}
 
   export default function(${DATA}: any, __output__: string = ""): string {
