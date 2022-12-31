@@ -1,9 +1,8 @@
-import { bdd } from "../../test_deps.ts";
-import { block, eval_, import_, literal } from "./common.ts";
+import { bdd, expect } from "../../test_deps.ts";
+import { eval_, import_, literal } from "./common.ts";
 import { generateDynamicHtml, normalizeDynamicHtml } from "../generator.ts";
 import { parseDynamicHtml } from "../parser.ts";
 import { pathMod } from "../../deps.ts";
-const expect = chai.expect;
 
 bdd.describe("[DynamicHtml/normalizer]", () => {
   bdd.it("Simple", () => {
@@ -13,7 +12,7 @@ bdd.describe("[DynamicHtml/normalizer]", () => {
         eval_("D"),
         import_(`a as b from "./file.ts" as DEFAULT`),
       ]),
-    ).to.deep.equal({
+    ).toEqual({
       imports: [{
         type: "import",
         content: `a as b from "./file.ts" as DEFAULT`,
@@ -30,7 +29,7 @@ bdd.describe("[DynamicHtml/normalizer]", () => {
         eval_("D"),
         import_(`"./file.ts" as DEFAULT`),
       ]),
-    ).to.deep.equal({
+    ).toEqual({
       imports: [{
         type: "import",
         content: `"./file.ts" as DEFAULT`,
@@ -47,7 +46,7 @@ bdd.describe("[DynamicHtml/normalizer]", () => {
         eval_("D"),
         import_(`a as b from "./file.ts"`),
       ]),
-    ).to.deep.equal({
+    ).toEqual({
       imports: [{
         type: "import",
         content: `a as b from "./file.ts"`,

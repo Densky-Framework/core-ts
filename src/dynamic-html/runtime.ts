@@ -15,7 +15,7 @@ export class DenskyHtmlRuntime {
 
   static stringify(data: unknown): string {
     if (typeof data !== "object") return `${data}`;
-    if (data === null) return "null"
+    if (data === null) return "null";
 
     if ("toString" in data && typeof data.toString === "function") {
       return data.toString();

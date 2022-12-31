@@ -103,9 +103,8 @@ function searchDelimiter(
   return -1;
 }
 
-
 function handleExpression(expr: string): DynamicHtmlPart | null {
-    const trimmed = expr.trim();
+  const trimmed = expr.trim();
   const prefix = expr[0];
   // Get type from declared prefixes
   const type = typesMap[prefix] ?? "eval";

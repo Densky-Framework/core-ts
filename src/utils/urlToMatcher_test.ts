@@ -1,36 +1,25 @@
 import { urlToMatcher } from "./urlToMatcher.ts";
-import { bdd } from "../test_deps.ts";
-const expect = chai.expect;
+import { bdd, expect } from "../test_deps.ts";
 
 bdd.describe("urlToMatcher", () => {
   bdd.it("Simple", () => {
     const matcher = urlToMatcher("/my/path");
     const params = new Map<string, string>();
 
-    expect(matcher)
-      .to.be.an("object")
-      .with.keys(
-        "exact",
-        "start",
-        "exactDecl",
-        "startDecl",
-        "prepareDecl",
-        "serialDecl",
-      );
-    expect(matcher.exact("/my/path", params)).to.be.true;
-    expect(matcher.exact("/my/path/deep", params)).to.be.false;
-    expect(matcher.exact("/my/pat", params)).to.be.false;
-    expect(matcher.exact("my/path", params)).to.be.false;
-    expect(matcher.start("/my/path/deep")).to.be.true;
-    expect(matcher.start("/my/path")).to.be.true;
+    expect(matcher.exact("/my/path", params)).toBeTruthy();
+    expect(matcher.exact("/my/path/deep", params)).toBeFalsy();
+    expect(matcher.exact("/my/pat", params)).toBeFalsy();
+    expect(matcher.exact("my/path", params)).toBeFalsy();
+    expect(matcher.start("/my/path/deep")).toBeTruthy();
+    expect(matcher.start("/my/path")).toBeTruthy();
 
-    expect(matcher.exactDecl("target", "params")).to.be.equal(
+    expect(matcher.exactDecl("target", "params")).toEqual(
       "urlMatcherPrepare_target === '/my/path'",
     );
-    expect(matcher.startDecl("target")).to.be.equal(
+    expect(matcher.startDecl("target")).toEqual(
       "urlMatcherPrepare_target.startsWith('/my/path')",
     );
-    expect(matcher.prepareDecl("target", "req")).to.be.equal(
+    expect(matcher.prepareDecl("target", "req")).toEqual(
       "const urlMatcherPrepare_target = req.pathname;",
     );
   });
@@ -40,16 +29,17 @@ bdd.describe("urlToMatcher", () => {
     const matcher = urlToMatcher(url);
     const params = new Map<string, string>();
 
-    expect(matcher.exact("/my/path", params)).to.be.true;
-    expect(matcher.exact("/my/pat", params)).to.be.true;
-    expect(matcher.exact("/my/path/deep", params)).to.be.false;
-    expect(matcher.exact("my/path", params)).to.be.false;
-    expect(matcher.start("/my/path/deep")).to.be.true;
-    expect(matcher.start("/my/path")).to.be.true;
+    expect(matcher.exact("/my/path", params)).toBeTruthy();
+    expect(matcher.exact("/my/pat", params)).toBeTruthy();
+    expect(matcher.exact("/my/path/deep", params)).toBeFalsy();
+    expect(matcher.exact("my/path", params)).toBeFalsy();
+    expect(matcher.start("/my/path/deep")).toBeTruthy();
+    expect(matcher.start("/my/path")).toBeTruthy();
 
-    expect(matcher.exactDecl("target", "params")).to.be.equal(`(() => {
+    expect(matcher.exactDecl("target", "params")).toEqual(`(() => {
           const t = urlMatcherPrepare_target;
           const p = urlMatcherSerial_target;
+          const m = params;
 
           if (t.length !== p.length) return false;
           m.clear();
@@ -63,7 +53,7 @@ bdd.describe("urlToMatcher", () => {
             return false;
           });
         })()`);
-    expect(matcher.startDecl("target")).to.be.equal(`(() => {
+    expect(matcher.startDecl("target")).toEqual(`(() => {
           const t = urlMatcherPrepare_target;
           const p = urlMatcherSerial_target;
 
@@ -75,7 +65,8 @@ bdd.describe("urlToMatcher", () => {
             return false;
           });
         })()`);
-    expect(matcher.prepareDecl("target", "req")).to.be
-      .equal(`const urlMatcherPrepare_target=req.byParts;`);
+    expect(matcher.prepareDecl("target", "req")).toEqual(
+      `const urlMatcherPrepare_target=req.byParts;`,
+    );
   });
 });

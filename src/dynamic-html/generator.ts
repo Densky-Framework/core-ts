@@ -44,7 +44,7 @@ export function normalizeDynamicHtml(parts: DynamicHtmlPart[]): DynamicHtml {
 }
 
 export function escape(data: string) {
-  return data.replaceAll('"', "\\\"").replaceAll("\n", "\\n")
+  return data.replaceAll('"', '\\"').replaceAll("\n", "\\n");
 }
 
 export function generateDynamicHtml(
