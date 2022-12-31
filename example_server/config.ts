@@ -13,5 +13,5 @@ export const compileOptions: CompileOptions = {
   staticPrefix: "/static",
   viewsPath: "src/views",
   verbose: true,
-  dynamicHtml: true
+  dynamicHtml: true,
 };
