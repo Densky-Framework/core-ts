@@ -13,6 +13,7 @@ import { Watcher } from "../utils/Watcher/Watcher.ts";
 import { chalk, fs, pathMod } from "../deps.ts";
 import { Globals } from "../globals.ts";
 import { WatchEvent } from "../utils/Watcher/WatchEvent.ts";
+import { log } from "../log.ts";
 
 export type DevServerOptions = Omit<CompileOptions, "outDir" | "verbose">;
 
@@ -87,11 +88,7 @@ export class DevServer extends BaseServer {
       // Execute
       console.clear();
       await exec(ev);
-      console.log(
-        chalk`{dim  ${timestamp()}} {cyan {bold DENSKY} ${name.toUpperCase()} {green ${ev.kind}} ${
-          pathMod.relative(globalPath, ev.path)
-        }}`,
-      );
+      log(pathMod.relative(globalPath, ev.path), name.toUpperCase(), ev.kind);
     });
   }
 
@@ -171,12 +168,10 @@ export class DevServer extends BaseServer {
         // If it isn't cached, then recalculate middlewares for
         // prevent bugs in discover
         controllerTree.calculateMiddlewares();
-        console.log(
-          chalk`{dim  ${timestamp()}} {cyan {bold DENSKY} Loading controller} ${relPath}`,
-        );
+        log(relPath, "Loading controller");
         // The '?k=...' is for prevent Deno import caching
         controllerMod = await import(
-          "file://" + controllerUrl + "?k=" + (Math.random() * 1e7 | 0)
+          "file://" + controllerUrl + "?k=" + ((Math.random() * 1e7) | 0)
         );
         this.controllersCache.set(controllerUrl, controllerMod);
 
@@ -187,9 +182,7 @@ export class DevServer extends BaseServer {
           // Don't watch until next call
           watcher.unsubscribe(callback);
 
-          console.log(
-            chalk`{dim  ${timestamp()}} {cyan {bold DENSKY} ROUTES {green ${event.kind}} ${relPath}}`,
-          );
+          log(relPath, event.kind, "ROUTES");
 
           // Reload all cache
           this.controllersCache.delete(controllerUrl);
@@ -201,10 +194,7 @@ export class DevServer extends BaseServer {
             } catch (e) {
               if (!(e instanceof Error)) throw e;
 
-              console.log(
-                chalk`{dim  ${timestamp()}} {cyan {bold DENSKY} Error parsing content: }` +
-                  e.message,
-              );
+              log(e.message, "Error parsing content");
             }
           }
         };

@@ -1,8 +1,8 @@
-import { chalk, pathMod } from "../deps.ts";
+import { pathMod } from "../deps.ts";
 import { getMimeType } from "./mime.ts";
 import { Watcher, WatchEvent } from "./Watcher.ts";
 import { Globals } from "../globals.ts";
-import { timestamp } from "./timestamp.ts";
+import { log } from "../log.ts";
 
 export class StaticFiles {
   readonly cache = new Map();
@@ -23,10 +23,7 @@ export class StaticFiles {
     const relPath = pathMod.relative(this.folderPath, filePath);
 
     if (!this.cache.has(filePath)) {
-      console.log(
-        chalk`{dim  ${timestamp()}} {cyan {bold DENSKY} ${this.watchType.toUpperCase()} {green caching} }` +
-          relPath,
-      );
+      log(relPath, this.watchType.toUpperCase(), "caching");
       const { ext } = pathMod.parse(filePath);
       // ext has a dot and we don't want it
       const extension = ext.slice(1);
@@ -46,11 +43,8 @@ export class StaticFiles {
           watcher.unsubscribe(callback);
           this.cache.delete(filePath);
 
-          console.log(
-            chalk`{dim  ${timestamp()}} {cyan {bold DENSKY} ${this.watchType.toUpperCase()} {green ${ev.kind}} ${relPath}}`,
-          );
+          log(relPath, this.watchType.toUpperCase(), ev.kind);
         };
-
         watcher(callback);
       }
 
