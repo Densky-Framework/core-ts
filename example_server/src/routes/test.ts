@@ -1,4 +1,4 @@
-import { IController, HTTPResponse } from "densky";
+import { HTTPResponse, IController } from "densky";
 
 export default class _ implements IController {
   async GET() {

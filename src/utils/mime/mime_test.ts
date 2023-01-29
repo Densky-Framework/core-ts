@@ -1,11 +1,9 @@
-import { bdd } from "../../test_deps.ts";
+import { bdd, expect } from "../../test_deps.ts";
 import { getMimeType } from "./mime.ts";
-const expect = chai.expect;
 
 function testType(input: string, expected: string) {
   const output = getMimeType(input);
-  expect(output, input).to.be.a("string");
-  expect(output, input).to.be.equal(expected);
+  expect(output).toEqual(expected);
 }
 
 function testTypes(cases: Record<string, string>) {

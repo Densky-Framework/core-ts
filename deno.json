@@ -8,6 +8,7 @@
   },
 
   "tasks": {
-    "test": "deno test src --coverage=cov/"
+    "test": "deno test src --coverage=cov/",
+    "tokei": "tokei -Cfn commas src"
   }
 }
