@@ -93,6 +93,7 @@ export default async function requestHandler(request: Deno.RequestEvent, conn: D
   return await httpHandler(req);
 }`;
 
+    console.log(content);
     await Deno.writeTextFile(mainPath, format(mainPath, content));
   }
 

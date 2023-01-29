@@ -1,4 +1,8 @@
+import { pathMod } from "../deps.ts";
+
 export class DenskyHtmlRuntime {
+  resolve = pathMod.resolve;
+
   /* Escape HTML Text */
   static escape(data: string): string {
     return data.replaceAll(/[&<>\n"']/g, (ch: string) => {
