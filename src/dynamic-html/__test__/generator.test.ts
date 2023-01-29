@@ -2,7 +2,7 @@ import { bdd, expect } from "../../test_deps.ts";
 import { eval_, import_, literal } from "./common.ts";
 import { generateDynamicHtml, normalizeDynamicHtml } from "../generator.ts";
 import { parseDynamicHtml } from "../parser.ts";
-import { pathMod } from "../../deps.ts";
+// import { pathMod } from "../../deps.ts";
 
 bdd.describe("[DynamicHtml/normalizer]", () => {
   bdd.it("Simple", () => {

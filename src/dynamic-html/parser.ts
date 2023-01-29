@@ -68,6 +68,13 @@ export function parseDynamicHtml(content: string): DynamicHtmlPart[] {
       isOpen = true;
       lastIndex = openIndex + OPEN_DELIMITER.length;
     } else {
+      const literal = content.substring(lastIndex, content.length).trim();
+      if (literal.length !== 0) {
+        parts.push({
+          type: "literal",
+          content: literal,
+        });
+      }
       break;
     }
   }

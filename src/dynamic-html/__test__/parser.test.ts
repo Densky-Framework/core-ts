@@ -3,6 +3,16 @@ import { block, eval_, import_, literal } from "./common.ts";
 import { parseDynamicHtml } from "../parser.ts";
 
 bdd.describe("[DynamicHtml/parser]", () => {
+  bdd.it("Literal's", () => {
+    expect(parseDynamicHtml(`ABC`)).toEqual(
+      [literal("ABC")],
+    );
+
+    expect(parseDynamicHtml(`abcABC123'";:\\`)).toEqual(
+      [literal(`abcABC123'";:\\`)],
+    );
+  });
+
   bdd.it("Import's", () => {
     expect(parseDynamicHtml(`{$ "./file.ts" as DEFAULT }`)).toEqual(
       [import_(`"./file.ts" as DEFAULT`)],

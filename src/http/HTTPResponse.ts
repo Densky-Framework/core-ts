@@ -1,21 +1,25 @@
 import { PrimitiveObject, StatusCode } from "../common.ts";
-import { StaticFiles } from "../utils/StaticFiles.ts";
+import { DynamicHtmlTree } from "../dynamic-html/DynamicHtmlTree.ts";
 
 export class HTTPResponse {
-  static viewsTree: StaticFiles;
+  static viewsTree: DynamicHtmlTree;
 
   constructor(readonly event: Deno.RequestEvent) {}
 
-  static async view(path: string, init?: ResponseInit): Promise<Response> {
+  static async view(
+    path: string,
+    data?: unknown,
+    init?: ResponseInit,
+  ): Promise<Response> {
     if (!this.viewsTree) {
       throw new Error(
         "You're trying to use views without its config. Please set 'viewsPath' config.",
       );
     }
 
-    const staticFile = await this.viewsTree.getFile(path);
+    const viewNode = await this.viewsTree.getNode(path);
 
-    return staticFile.toResponse(init);
+    return viewNode.toResponse(data, init);
   }
 
   static fromJSON(obj: PrimitiveObject, init?: ResponseInit): Response {

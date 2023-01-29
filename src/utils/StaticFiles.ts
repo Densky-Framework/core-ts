@@ -38,7 +38,7 @@ export class StaticFiles {
       if (Watcher.enabled) {
         const watcher = Watcher.watch(this.watchType + "/" + relPath);
         const callback = (ev: WatchEvent) => {
-          if (ev.kind !== "modify") return;
+          if (ev.kind === "create") return;
 
           watcher.unsubscribe(callback);
           this.cache.delete(filePath);

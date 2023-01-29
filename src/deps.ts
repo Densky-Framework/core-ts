@@ -17,4 +17,6 @@ export {
   encode as encode64,
 } from "https://deno.land/std@0.160.0/encoding/base64.ts";
 
+export { debounce } from "https://deno.land/std@0.175.0/async/debounce.ts";
+
 export * from "./chalk.ts";
