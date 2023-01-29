@@ -9,7 +9,7 @@ export async function dynamicWrite(
 ): Promise<string> {
   if (!options.viewsPath) return "";
 
-  let nodesList = "";
+  const nodesList: string[] = [];
   let imports = "";
   let id_ = 0;
   const promises: Promise<void>[] = [];
@@ -19,26 +19,31 @@ export async function dynamicWrite(
     const id = ++id_;
     promises.push(
       node.prepare().then(() => {
-        // Remove last extension (.html.ts.ts)
-        const _outPath = node.outPath.split(".");
-        _outPath.pop();
         const filePath =
-          `$Densky$.DynamicHtmlRuntime.resolve($Densky$.Globals.cwd, "${
+          `$Densky$.DenskyHtmlRuntime.resolve($Densky$.Globals.cwd, "${
             pathMod.relative(Globals.cwd, node.filePath)
           }")`;
         const outPath =
-          `$Densky$.DynamicHtmlRuntime.resolve($Densky$.Globals.cwd, "${
-            pathMod.relative(Globals.cwd, _outPath.join("."))
+          `$Densky$.DenskyHtmlRuntime.resolve($Densky$.Globals.cwd, "${
+            pathMod.relative(
+              Globals.cwd,
+              node.outPath.split(".").slice(0, -1).join("."),
+            )
           }")`;
 
-        imports += `import $views$${id} from "${
+        imports += `import $view$${id} from "./${
           pathMod.relative(options.outDir, node.outPath)
         }";\n`;
-        nodesList += `$Densky$.HTTPResponse.viewsTree.tree.set(
-        "${nodeKey}", 
-        new $Densky$.DynamicHtmlTreeNode(${filePath}, ${outPath})
-      );
-      $Densky$.HTTPResponse.viewsTree.tree.get("${nodeKey}")!.render = $view$${id};\n`;
+        const nodeS = `new $Densky$.DynamicHtmlTreeNode(filePath, outPath)`;
+        nodesList.push(
+          "{",
+          `const filePath = ${filePath}`,
+          `const outPath = ${outPath}`,
+          `const node = ${nodeS}`,
+          `$Densky$.HTTPResponse.viewsTree.tree.set("${nodeKey}", node);`,
+          `node.render = $view$${id};`,
+          "}",
+        );
 
         return node.write();
       }),
@@ -50,6 +55,7 @@ export async function dynamicWrite(
   const folderPath = pathMod.relative(Globals.cwd, options.viewsPath);
   const outDir = pathMod.relative(Globals.cwd, options.outDir);
 
-  return `${imports} $Densky$.HTTPResponse.viewsTree = new $Densky$.DynamicHtmlTree("${folderPath}", "${outDir}");
-  ${nodesList}`;
+  return imports +
+    `\n$Densky$.HTTPResponse.viewsTree = new $Densky$.DynamicHtmlTree("${folderPath}", "${outDir}");\n` +
+    nodesList.join("\n");
 }

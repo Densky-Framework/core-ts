@@ -22,7 +22,7 @@ export async function dynamicDiscover(
     // Create node without generate its render build
     const node = new DynamicHtmlTreeNode(
       filePath,
-      dynamicHtmlTree.getBuildFilePath(filePath) + ".ts",
+      dynamicHtmlTree.getBuildFilePath(filePath),
     );
 
     dynamicHtmlTree.tree.set(relPath, node);
