@@ -15,7 +15,9 @@ import { wsWrite } from "./ws/write.ts";
 import { format } from "./formatter.ts";
 import { staticDiscover } from "./static/discover.ts";
 import { staticWrite } from "./static/write.ts";
+import { dynamicDiscover } from "../dynamic-html.ts";
 import { Globals } from "../globals.ts";
+import { dynamicWrite } from "../dynamic-html/write.ts";
 
 export type { CompileOptions };
 
@@ -30,10 +32,12 @@ export async function compile(options: CompileOptions) {
   const httpRoutesTree = await httpDiscover(opts);
   const wsRoutesTree = await wsDiscover(opts);
   const staticRoutesTree = await staticDiscover(opts);
+  const views = await dynamicDiscover(opts);
 
   if (!httpRoutesTree) return;
   if (opts.wsPath && !wsRoutesTree) return;
   if (opts.staticPath && !staticRoutesTree) return;
+  if (opts.viewsPath && !views) return;
 
   log_info("Writing files");
 
@@ -41,8 +45,8 @@ export async function compile(options: CompileOptions) {
   // We use try-catch for handle 'No such file or directory' error
   try {
     await Deno.remove(opts.outDir, { recursive: true });
-  } catch (_) {
-    void 0;
+  } catch {
+    // empty
   }
 
   // Write
@@ -50,9 +54,12 @@ export async function compile(options: CompileOptions) {
   if (wsRoutesTree) await wsWrite(wsRoutesTree, opts);
   if (staticRoutesTree) await staticWrite(staticRoutesTree, opts);
 
+  const viewsBlock = views ? await dynamicWrite(views, opts) : "";
+
+  const hasWs = !!opts.wsPath;
+  const hasStatic = !!opts.staticPath;
+
   {
-    const hasWs = !!opts.wsPath;
-    const hasStatic = !!opts.staticPath;
     const mainPath = path.join(opts.outDir, "main.ts");
     await fs.ensureFile(mainPath);
     const content =
@@ -62,13 +69,7 @@ import httpHandler from "./http.main.ts";
 ${hasWs ? "import wsHandler from './ws.main.ts'" : ""}
 ${hasStatic ? "import staticHandler from './static.main.ts'" : ""}
 
-${
-        opts.viewsPath
-          ? `$Densky$.HTTPResponse.viewsTree = new $Densky$.StaticFiles("${
-            pathMod.relative(Globals.cwd, opts.viewsPath)
-          }", "views")`
-          : ""
-      }
+${viewsBlock}
 
 export default async function requestHandler(request: Deno.RequestEvent, conn: Deno.Conn): Promise<Response> {
   const req = new $Densky$.HTTPRequest(request);
