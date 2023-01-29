@@ -1,0 +1,5 @@
+cov/*
+*_test.ts
+*.test.ts
+*deps.ts
+*/__test__/*
