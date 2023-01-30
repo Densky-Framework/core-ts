@@ -23,7 +23,6 @@ export class DynamicHtmlTree {
     const relPath = pathMod.relative(this.folderPath, filePath);
 
     if (this.tree.has(relPath)) {
-      console.log("Using cache")
       return this.tree.get(relPath)!;
     }
 
@@ -128,7 +127,9 @@ export class DynamicHtmlTreeNode {
 
   toResponse(data: unknown, init: ResponseInit | Response = {}) {
     if (!this.render) {
-      throw new Error("DynamicHtmlNode is not sync with the build, on " + this.filePath);
+      throw new Error(
+        "DynamicHtmlNode is not sync with the build, on " + this.filePath,
+      );
     }
 
     return new Response(this.render(data), {
