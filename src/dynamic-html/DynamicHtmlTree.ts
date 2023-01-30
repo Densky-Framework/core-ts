@@ -84,8 +84,9 @@ export class DynamicHtmlTreeNode {
 
   async prepare() {
     const html = await Deno.readTextFile(this.filePath);
+    const minifiedHtml = (await import("../compileDeps.ts")).minify(html);
     this.dynamicHtml = normalizeDynamicHtml(
-      parseDynamicHtml(html),
+      parseDynamicHtml(minifiedHtml),
     );
   }
 
@@ -135,6 +136,10 @@ export class DynamicHtmlTreeNode {
     return new Response(this.render(data), {
       status: 200,
       ...init,
+      headers: {
+        "Content-Type": "text/html",
+        ...init.headers,
+      },
     });
   }
 }
