@@ -1,6 +1,6 @@
-import { bdd } from "../../test_deps.ts";
+import { bdd, expect, mock } from "../../test_deps.ts";
+import { WatchEvent } from "./WatchEvent.ts";
 import { Watching } from "./Watching.ts";
-const expect = chai.expect;
 
 function createMockWatcher() {
   let closed = false;
@@ -38,7 +38,6 @@ bdd.describe("Watcher => Watching", () => {
   bdd.it("Handled paths correctly", async () => {
     const watcher = createMockWatcher();
 
-    let calledTimes = 0;
     const instance = new Watching(watcher, "/tmp/path");
 
     async function test(
@@ -46,18 +45,17 @@ bdd.describe("Watcher => Watching", () => {
       expected: string[],
       shouldExecute: boolean,
     ) {
-      instance((ev) => {
-        calledTimes++;
-        expect(ev.path).to.eq(expected[0]);
+      const testFunction = mock.fn((ev: WatchEvent) => {
+        expect(ev.path).toEqual(expected[0]);
       });
+      instance(testFunction);
 
       watcher.execute({ paths: input, kind: "create" });
       // Wait for next tick, the callback must be called
       await new Promise((res) => setTimeout(res, 1));
 
-      expect(calledTimes).to.eq(shouldExecute ? 1 : 0);
+      expect(testFunction).toHaveBeenCalledTimes(shouldExecute ? 1 : 0);
       instance.clear();
-      calledTimes = 0;
     }
 
     await test([], [], false);

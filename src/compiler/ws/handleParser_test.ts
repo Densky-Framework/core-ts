@@ -1,6 +1,5 @@
-import { bdd } from "../../test_deps.ts";
+import { bdd, expect } from "../../test_deps.ts";
 import { errors, handleParser, makeError } from "./handleParser.ts";
-const expect = chai.expect;
 
 bdd.describe("Compiler/Ws - handleParser", () => {
   const path = Deno.cwd() + "/path/TestFile";
@@ -24,7 +23,7 @@ export default function handleWS(ctxParam: WsContext, reqParam: WsRequest): void
       path,
     );
 
-    expect(handler.body).to.be.equal(`
+    expect(handler.body).toEqual(`
   // More lines :D
   console.log(ctx, req);
 
@@ -32,8 +31,8 @@ export default function handleWS(ctxParam: WsContext, reqParam: WsRequest): void
 
   req.send(req.path, "Echo: " + req.data);
 `);
-    expect(handler.ctxParam).to.be.equal("ctxParam");
-    expect(handler.sockParam).to.be.equal("reqParam");
+    expect(handler.ctxParam).toEqual("ctxParam");
+    expect(handler.sockParam).toEqual("reqParam");
   });
 
   bdd.it("Test 2", () => {
@@ -48,10 +47,10 @@ export default function handleWS(ctxParam: WsContext): void {
       path,
     );
 
-    expect(handler.body).to.be.equal(`
+    expect(handler.body).toEqual(`
 `);
-    expect(handler.ctxParam).to.be.equal("ctxParam");
-    expect(handler.sockParam).to.be.undefined;
+    expect(handler.ctxParam).toEqual("ctxParam");
+    expect(handler.sockParam).toBeUndefined();
   });
 
   bdd.it("Test 3", () => {
@@ -66,10 +65,10 @@ export default function handleWS(): void {
       path,
     );
 
-    expect(handler.body).to.be.equal(`
+    expect(handler.body).toEqual(`
 `);
-    expect(handler.ctxParam).to.be.undefined;
-    expect(handler.sockParam).to.be.undefined;
+    expect(handler.ctxParam).toBeUndefined();
+    expect(handler.sockParam).toBeUndefined();
   });
 
   bdd.it("Test Fails", () => {
@@ -85,8 +84,8 @@ export default function handleWS(): void {
     for (const [idx, [test, expectError]] of tests.entries()) {
       expect(
         () => handleParser(test as string, path),
-        `[Index ${idx}]`,
-      ).throws((expectError as Error).message);
+        // `[Index ${idx}]`,
+      ).toThrow((expectError as Error).message);
     }
   });
 });

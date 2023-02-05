@@ -4,7 +4,7 @@ import { Globals } from "densky";
 const pathname = new URL(import.meta.resolve("./")).pathname;
 Globals.cwd = pathname;
 
-console.log("Running in " + pathname);
+console.log("Running on " + pathname);
 
 export const compileOptions: CompileOptions = {
   routesPath: "src/routes",
@@ -13,4 +13,5 @@ export const compileOptions: CompileOptions = {
   staticPrefix: "/static",
   viewsPath: "src/views",
   verbose: true,
+  dynamicHtml: true,
 };
